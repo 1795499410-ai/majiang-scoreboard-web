@@ -1,0 +1,343 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Plus, Check } from 'lucide-react';
+import { getPlayers, addPlayer, addGame, getLastGroup, getTableDetail, updateGame } from '../lib/db';
+import { checkZeroSum, autoComplete, formatDate, signed } from '../lib/model';
+import { Avatar, Score, Loading, Modal, ErrorBox, useToast } from '../components/ui';
+
+export default function Record() {
+  const nav = useNavigate();
+  const toast = useToast();
+  const [sp] = useSearchParams();
+  const editGameId = sp.get('edit');
+  const presetTable = sp.get('table');
+
+  const [step, setStep] = useState(1);
+  const [players, setPlayers] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [points, setPoints] = useState({});
+  const [playedDate, setPlayedDate] = useState(formatDate());
+  const [tableId, setTableId] = useState(presetTable || null);
+  const [tableRounds, setTableRounds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const ps = await getPlayers();
+      setPlayers(ps);
+      if (editGameId) {
+        // 编辑模式：从所在桌里找到这一局并预填
+        const detail = await getTableDetail(presetTable);
+        const round = detail.rounds.find((r) => r.game_id === editGameId);
+        if (round) {
+          setSelected(round.scores.map((s) => s.player_id));
+          const pt = {};
+          round.scores.forEach((s) => { pt[s.player_id] = String(s.points); });
+          setPoints(pt);
+          setPlayedDate(round.played_date);
+          setStep(2);
+        }
+      } else if (presetTable) {
+        const detail = await getTableDetail(presetTable);
+        setTableRounds(detail.rounds);
+        setPlayedDate(detail.played_date);
+        const last = detail.rounds[detail.rounds.length - 1];
+        if (last) setSelected(last.scores.map((s) => s.player_id));
+      }
+    } catch (e) {
+      setError(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [editGameId, presetTable]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const toggle = (id) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 8 ? prev : [...prev, id]
+    );
+  };
+
+  const useLastGroup = async () => {
+    try {
+      const ids = await getLastGroup();
+      if (!ids.length) return toast('还没有历史对局');
+      setSelected(ids.filter((id) => players.some((p) => p.id === id)));
+      toast('已载入上一桌');
+    } catch (e) {
+      setError(e);
+    }
+  };
+
+  const doAddPlayer = async () => {
+    const name = newName.trim();
+    if (!name || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const p = await addPlayer(name);
+      setPlayers((prev) => [...prev, p]);
+      setSelected((prev) => (prev.length < 8 ? [...prev, p.id] : prev));
+      setNewName('');
+      setShowAdd(false);
+      toast('已添加');
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const setPoint = (id, val) => {
+    // 允许负号与空串，非法字符直接忽略
+    if (val !== '' && val !== '-' && !/^-?\d{0,5}$/.test(val)) return;
+    setPoints((prev) => ({ ...prev, [id]: val }));
+  };
+
+  const fillLast = (id) => {
+    const arr = selected.map((pid) => Number(points[pid]) || 0);
+    const idx = selected.indexOf(id);
+    setPoints((prev) => ({ ...prev, [id]: String(autoComplete(arr, idx)) }));
+  };
+
+  const nums = selected.map((id) => Number(points[id]) || 0);
+  const zero = checkZeroSum(nums);
+  const isFilled = (id) => points[id] !== undefined && points[id] !== '' && points[id] !== '-';
+  const allFilled = selected.every(isFilled);
+  const anyFilled = selected.some(isFilled);
+  const canSubmit = selected.length >= 2 && allFilled && zero.ok;
+
+  const submit = async (keepGoing) => {
+    if (!canSubmit || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const entries = selected.map((id) => ({ player_id: id, points: Number(points[id]) || 0 }));
+      if (editGameId) {
+        await updateGame(editGameId, { entries, playedDate });
+        toast('已保存');
+        nav(`/table/${presetTable}`, { replace: true });
+        return;
+      }
+      const game = await addGame({ entries, playedDate, tableId });
+      const tid = game.table_id;
+      setTableId(tid);
+      const detail = await getTableDetail(tid);
+      setTableRounds(detail.rounds);
+      setPoints({});
+      toast('已记录');
+      if (!keepGoing) nav(`/table/${tid}`, { replace: true });
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading) return <div className="page"><Loading /></div>;
+
+  return (
+    <div className="page page-nobar page-table">
+      <div className="felt-bg" aria-hidden="true">
+        <span className="felt-ring" />
+        <span className="felt-center">麻</span>
+        <span className="felt-tile ft-n" /><span className="felt-tile ft-e" />
+        <span className="felt-tile ft-s" /><span className="felt-tile ft-w" />
+      </div>
+      <div className="sub-head">
+        <button className="sub-back" onClick={() => nav(-1)} aria-label="返回">
+          <ChevronLeft size={22} strokeWidth={1.5} />
+        </button>
+        <span className="sub-title">
+          {editGameId ? '编辑这一局' : tableRounds.length ? `本桌第 ${tableRounds.length + 1} 局` : '记录对局'}
+        </span>
+      </div>
+
+      <div className="page-inner">
+        <ErrorBox error={error} />
+
+        {step === 1 && (
+          <>
+            <div className="field">
+              <label className="field-label">日期</label>
+              <input
+                className="input num"
+                type="date"
+                value={playedDate}
+                onChange={(e) => setPlayedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="pick-head">
+              <span className="field-label" style={{ margin: 0 }}>
+                选择参与者 {selected.length > 0 && `（${selected.length}）`}
+              </span>
+              <div style={{ display: 'flex', gap: 'var(--s2)' }}>
+                <button className="btn btn-sm btn-ghost" onClick={useLastGroup}>上一桌</button>
+                <button className="btn btn-sm btn-ghost" onClick={() => setShowAdd(true)}>
+                  <Plus size={14} strokeWidth={2} />新增
+                </button>
+              </div>
+            </div>
+
+            {players.length === 0 ? (
+              <div className="empty">
+                <div className="empty-text">还没有牌友</div>
+                <div className="empty-hint">先添加至少 2 位</div>
+                <button className="btn btn-primary" style={{ maxWidth: 200, margin: 'var(--s4) auto 0' }} onClick={() => setShowAdd(true)}>
+                  添加牌友
+                </button>
+              </div>
+            ) : (
+              <div className="pick-grid">
+                {players.map((p) => (
+                  <button
+                    key={p.id}
+                    className={`pick-item ${selected.includes(p.id) ? 'active' : ''}`}
+                    onClick={() => toggle(p.id)}
+                  >
+                    <Avatar nickname={p.nickname} colorIndex={p.avatar_color} />
+                    <span className="pick-name">{p.nickname}</span>
+                    {selected.includes(p.id) && (
+                      <span className="pick-badge"><Check size={12} strokeWidth={3} /></span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div className="score-list">
+              {selected.map((id) => {
+                const p = players.find((x) => x.id === id) || {};
+                return (
+                  <div className="score-row" key={id}>
+                    <Avatar nickname={p.nickname} colorIndex={p.avatar_color} size="sm" />
+                    <span className="score-nick">{p.nickname}</span>
+                    <input
+                      className="input score-input num"
+                      type="text"
+                      inputMode="text"
+                      placeholder="0"
+                      value={points[id] ?? ''}
+                      onChange={(e) => setPoint(id, e.target.value)}
+                    />
+                    <button className="btn btn-sm btn-ghost" onClick={() => fillLast(id)}>补全</button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 只要有人填过就给出校验反馈，不能等全填完才提示 */}
+            {anyFilled && !zero.ok && (
+              <div className="alert alert-warn">
+                {allFilled ? '所有人积分之和必须为 0' : '还差一些才能平账'}
+                ，当前差 <span className="num">{signed(-zero.diff)}</span>
+              </div>
+            )}
+            {anyFilled && !allFilled && zero.ok && (
+              <div className="alert alert-info">还有人没填分数</div>
+            )}
+            {allFilled && zero.ok && (
+              <div className="alert alert-info">已平账，可以提交</div>
+            )}
+
+            {tableRounds.length > 0 && (
+              <div className="card" style={{ marginTop: 'var(--s4)' }}>
+                <div className="field-label">本桌已记 {tableRounds.length} 局</div>
+                {tableRounds.map((r) => (
+                  <div className="row" key={r.game_id}>
+                    <div className="row-main">
+                      <div className="row-sub">第{r.round_num}局 · {r.played_time}</div>
+                    </div>
+                    <div className="mini-scores">
+                      {r.scores.map((s) => (
+                        <span key={s.player_id} className="mini-score">
+                          {s.nickname}<Score value={s.points} />
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="fixed-bottom-nobar">
+        {step === 1 ? (
+          <button
+            className="btn btn-primary"
+            disabled={selected.length < 2}
+            onClick={() => setStep(2)}
+          >
+            {selected.length < 2 ? '至少选 2 人' : `下一步（${selected.length}人）`}
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: 'var(--s3)' }}>
+            {!editGameId && (
+              <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setStep(1)}>
+                改人员
+              </button>
+            )}
+            <button
+              className="btn btn-primary"
+              style={{ flex: 2 }}
+              disabled={!canSubmit || busy}
+              onClick={() => submit(!editGameId)}
+            >
+              {busy
+                ? '保存中…'
+                : editGameId
+                  ? '保存修改'
+                  : !allFilled
+                    ? '还有人没填'
+                    : !zero.ok
+                      ? `差 ${signed(-zero.diff)}`
+                      : '记这一局'}
+            </button>
+          </div>
+        )}
+        {step === 2 && !editGameId && tableId && (
+          <button className="btn btn-ghost" style={{ marginTop: 'var(--s2)' }} onClick={() => nav(`/table/${tableId}`)}>
+            结束本桌
+          </button>
+        )}
+      </div>
+
+      {showAdd && (
+        <Modal
+          title="新增牌友"
+          onClose={() => setShowAdd(false)}
+          actions={
+            <>
+              <button className="btn btn-outline" onClick={() => setShowAdd(false)} disabled={busy}>取消</button>
+              <button className="btn btn-primary" onClick={doAddPlayer} disabled={busy || !newName.trim()}>
+                {busy ? '添加中…' : '添加'}
+              </button>
+            </>
+          }
+        >
+          <input
+            className="input"
+            placeholder="昵称"
+            value={newName}
+            autoFocus
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && doAddPlayer()}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}

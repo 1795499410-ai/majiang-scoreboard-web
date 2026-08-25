@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "siteId": "majiang-web",
+  "name": "majiang-web",
+  "kind": "react-vite",
+  "devCommand": "vite",
+  "buildCommand": "vite build",
+  "outputDir": "dist",
+  "entry": "index.html",
+  "createdBy": "accio-site-builder",
+  "createdAt": "2026-08-24T11:30:42.445Z",
+  "installedAt": "2026-08-24T11:53:47.286Z",
+  "databaseUrl": "https://supabase.com/dashboard/project/xgscnstxvhsjvntxigoz",
+  "integrations": {
+    "supabase": {
+      "projectUrl": "https://xgscnstxvhsjvntxigoz.supabase.co",
+      "projectRef": "xgscnstxvhsjvntxigoz",
+      "connectedAt": "2026-08-24T11:35:43.817Z"
+    }
+  },
+  "subdomain": "majiang",
+  "publishedUrl": "https://majiang.site.accio.ai",
+  "publishedAt": "2026-08-24T20:02:39.296Z",
+  "deployId": "dep_1787601756345_cd0fa490"
+}
