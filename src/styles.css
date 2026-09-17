@@ -130,6 +130,7 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
 /* ---------- 输入 ---------- */
 .field { margin-bottom: var(--s4); }
 .field-label { display: block; font-size: var(--fs-aux); color: var(--c-text-sub); margin-bottom: var(--s2); }
+.field-hint { font-size: var(--fs-note); color: var(--c-text-weak); }
 .input {
   width: 100%; height: var(--h-input);
   padding: 0 var(--s3);

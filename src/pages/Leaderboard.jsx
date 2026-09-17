@@ -8,6 +8,7 @@ import { SceneHeader, WoodFrame, MahjongTile, EmptyPanda, GoldTitle } from '../c
 import PosterModal from '../components/PosterModal';
 import { renderDailyPoster } from '../lib/poster';
 import { formatDate } from '../lib/model';
+import { useAuth } from '../lib/auth';
 
 const SCOPES = [
   { key: 'daily', label: '今日' },
@@ -19,6 +20,7 @@ const MEDAL_CHAR = ['冠', '亚', '季'];
 
 export default function Leaderboard() {
   const nav = useNavigate();
+  const { venueName } = useAuth();
   const [scope, setScope] = useState('total');
   const [view, setView] = useState('board');
   const [board, setBoard] = useState([]);
@@ -66,9 +68,10 @@ export default function Leaderboard() {
     () => renderDailyPoster({
       dateLabel: scope === 'total' ? '全部战绩' : scope === 'weekly' ? '本周战绩' : formatDate(),
       board,
-      totalGames: gameCount
+      totalGames: gameCount,
+      venueName
     }),
-    [board, scope, gameCount]
+    [board, scope, gameCount, venueName]
   );
 
   return (

@@ -26,6 +26,7 @@ const PALETTE = ['#4A7C63', '#C4553D', '#7A6A9B', '#2F6F87', '#A8722F', '#5E7D3F
 
 const FONT = '"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
 const NUM = '"DIN Alternate","SF Mono",ui-monospace,Menlo,monospace';
+const DEFAULT_VENUE_NAME = '牌桌风云';
 
 const signed = (n) => (n > 0 ? `+${n}` : String(n));
 const scoreColor = (n) => (n > 0 ? C.pos : n < 0 ? C.neg : C.sub);
@@ -41,7 +42,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 /** 顶部竹林远山页头 */
-function drawHeader(ctx, title, subtitle) {
+function drawHeader(ctx, title, subtitle, venueName = DEFAULT_VENUE_NAME) {
   const H = 230;
   const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, '#233B30');
@@ -84,6 +85,18 @@ function drawHeader(ctx, title, subtitle) {
   ctx.beginPath(); ctx.moveTo(36, 96); ctx.quadraticCurveTo(66, 78, 88, 86); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(714, 76); ctx.quadraticCurveTo(684, 58, 662, 66); ctx.stroke();
   ctx.globalAlpha = 1;
+
+  // 品牌名置于飞檐之前，与战报类型分层展示。按实际像素宽度自适应长名，避免覆盖装饰。
+  ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(250,248,243,.9)';
+  const brand = String(venueName || DEFAULT_VENUE_NAME).replace(/[\r\n]+/g, ' ').trim() || DEFAULT_VENUE_NAME;
+  let brandSize = 28;
+  while (brandSize > 18) {
+    ctx.font = `600 ${brandSize}px ${FONT}`;
+    if (ctx.measureText(brand).width <= W - PAD * 2) break;
+    brandSize -= 1;
+  }
+  ctx.fillText(brand, W / 2, 36);
 
   // 标题
   ctx.textAlign = 'center';
@@ -212,14 +225,14 @@ function toBlobUrl(cv) {
 }
 
 /** 一日战报：领奖台 + 全员积分 */
-export async function renderDailyPoster({ dateLabel, board, totalGames }) {
+export async function renderDailyPoster({ dateLabel, board, totalGames, venueName }) {
   const rows = board.slice(3);
   // 尾部预留 168px：熊猫 92 + 落款 62 + 呼吸位，避免熊猫压住最后一行
   const TAIL = 168;
   const H = 268 + 258 + 42 + (rows.length ? rows.length * 74 + 16 : 0) + TAIL;
   const { cv, ctx } = makeCanvas(H);
 
-  drawHeader(ctx, '麻友排行榜', `${dateLabel} · 共 ${totalGames} 局`);
+  drawHeader(ctx, '麻友排行榜', `${dateLabel} · 共 ${totalGames} 局`, venueName);
 
   let y = 268;
   const top3 = board.slice(0, 3);
@@ -317,14 +330,14 @@ export async function renderDailyPoster({ dateLabel, board, totalGames }) {
 }
 
 /** 单桌战报：每局明细 + 累计 */
-export async function renderTablePoster({ dateLabel, rounds, totals }) {
+export async function renderTablePoster({ dateLabel, rounds, totals, venueName }) {
   const roundsH = rounds.reduce((s, r) => s + 54 + r.scores.length * 40 + 18, 0);
   const TAIL = 168;
   // 230 页头 + 38 累计标题 + 累计卡 + 40 间距 + 62 明细标题 + 明细 + 尾部
   const H = 230 + 38 + (totals.length * 62 + 16) + 40 + 22 + roundsH + TAIL;
   const { cv, ctx } = makeCanvas(H);
 
-  drawHeader(ctx, '本桌战报', `${dateLabel} · 共 ${rounds.length} 局`);
+  drawHeader(ctx, '本桌战报', `${dateLabel} · 共 ${rounds.length} 局`, venueName);
 
   let y = 268;
 

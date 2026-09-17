@@ -11,6 +11,30 @@ function unwrap({ data, error }) {
   return data || [];
 }
 
+/* ---------- 账号配置 ---------- */
+
+export async function getProfile(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, venue_name')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function updateVenueName(userId, venueName) {
+  if (!userId) throw new Error('登录状态已失效，请重新登录');
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert({ id: userId, venue_name: venueName }, { onConflict: 'id' })
+    .select('id, venue_name')
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 /* ---------- 牌友 ---------- */
 
 export async function getPlayers() {

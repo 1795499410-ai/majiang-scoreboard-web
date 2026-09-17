@@ -1,13 +1,29 @@
 import { useState } from 'react';
-import { LogOut, Shield, Database, KeyRound, AlertTriangle, Eye, EyeOff } from 'lucide-react';
-import { useAuth, signOut, changePassword } from '../lib/auth';
+import { LogOut, Shield, Database, KeyRound, AlertTriangle, Eye, EyeOff, Store } from 'lucide-react';
+import {
+  useAuth,
+  signOut,
+  changePassword,
+  validateVenueName,
+  VENUE_NAME_MAX_LENGTH
+} from '../lib/auth';
 import { Modal, ErrorBox, useToast } from '../components/ui';
 import { MiniScene, WoodFrame, GoldTitle } from '../components/decor';
 
 export default function Me() {
-  const { username } = useAuth();
+  const {
+    username,
+    venueName,
+    venueNameRaw,
+    profileLoading,
+    updateVenueName
+  } = useAuth();
   const toast = useToast();
   const [showPwd, setShowPwd] = useState(false);
+  const [showVenue, setShowVenue] = useState(false);
+  const [venueDraft, setVenueDraft] = useState('');
+  const [venueBusy, setVenueBusy] = useState(false);
+  const [venueError, setVenueError] = useState(null);
   const [plain, setPlain] = useState(false);
   const [p1, setP1] = useState('');
   const [p2, setP2] = useState('');
@@ -26,6 +42,41 @@ export default function Me() {
     setP2('');
     setError(null);
   };
+
+  const openVenue = () => {
+    setVenueDraft(venueNameRaw);
+    setVenueError(null);
+    setShowVenue(true);
+  };
+
+  const closeVenue = () => {
+    if (venueBusy) return;
+    setShowVenue(false);
+    setVenueDraft('');
+    setVenueError(null);
+  };
+
+  const doUpdateVenue = async () => {
+    setVenueError(null);
+    const validation = validateVenueName(venueDraft);
+    if (validation) {
+      setVenueError(new Error(validation));
+      return;
+    }
+    setVenueBusy(true);
+    try {
+      await updateVenueName(venueDraft);
+      setShowVenue(false);
+      setVenueDraft('');
+      toast('麻将馆名已更新');
+    } catch (e) {
+      setVenueError(e);
+    } finally {
+      setVenueBusy(false);
+    }
+  };
+
+  const venueChanged = venueDraft.trim() !== venueNameRaw;
 
   const doChangePwd = async () => {
     setError(null);
@@ -58,6 +109,17 @@ export default function Me() {
               <div className="row-title" style={{ wordBreak: 'break-all' }}>{username}</div>
             </div>
           </div>
+          <button className="row row-tap" style={{ width: '100%' }} onClick={openVenue}>
+            <Store size={18} strokeWidth={1.5} color="var(--c-primary)" />
+            <div className="row-main">
+              <div className="row-title">
+                {profileLoading ? '麻将馆名读取中…' : (venueNameRaw || '麻将馆名')}
+              </div>
+              <div className="row-sub">
+                {venueNameRaw ? '用于所有分享战报' : `未设置 · 分享时显示${venueName}`}
+              </div>
+            </div>
+          </button>
         </WoodFrame>
 
         <div className="card">
@@ -141,6 +203,39 @@ export default function Me() {
               value={p2}
               onChange={(e) => setP2(e.target.value)}
             />
+          </div>
+        </Modal>
+      )}
+
+      {showVenue && (
+        <Modal
+          title="设置麻将馆名"
+          onClose={closeVenue}
+          actions={
+            <>
+              <button className="btn btn-outline" onClick={closeVenue} disabled={venueBusy}>取消</button>
+              <button className="btn btn-primary" onClick={doUpdateVenue} disabled={venueBusy || !venueChanged}>
+                {venueBusy ? '保存中…' : '保存'}
+              </button>
+            </>
+          }
+        >
+          <ErrorBox error={venueError} />
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label className="field-label" htmlFor="venue-name-input">麻将馆名</label>
+            <input
+              id="venue-name-input"
+              className="input"
+              type="text"
+              maxLength={VENUE_NAME_MAX_LENGTH}
+              placeholder="例如：四季麻将馆"
+              value={venueDraft}
+              autoFocus
+              onChange={(e) => setVenueDraft(e.target.value)}
+            />
+            <div className="field-hint" style={{ textAlign: 'right', marginTop: 'var(--s1)' }}>
+              {Array.from(venueDraft).length}/{VENUE_NAME_MAX_LENGTH}
+            </div>
           </div>
         </Modal>
       )}

@@ -5,11 +5,13 @@ import { getTableDetail, deleteGame } from '../lib/db';
 import { Avatar, Score, Loading, Empty, ErrorBox, useToast } from '../components/ui';
 import PosterModal from '../components/PosterModal';
 import { renderTablePoster } from '../lib/poster';
+import { useAuth } from '../lib/auth';
 
 export default function TableDetail() {
   const { tableId } = useParams();
   const nav = useNavigate();
   const toast = useToast();
+  const { venueName } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -20,9 +22,10 @@ export default function TableDetail() {
     () => renderTablePoster({
       dateLabel: data?.played_date || '',
       rounds: data?.rounds || [],
-      totals: data?.totals || []
+      totals: data?.totals || [],
+      venueName
     }),
-    [data]
+    [data, venueName]
   );
 
   const load = useCallback(async () => {

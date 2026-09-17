@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from './supabase';
+import { getProfile, updateVenueName as persistVenueName } from './db';
 
 /**
  * 账号体系：用户只输入「账号 + 密码」。
@@ -7,8 +8,20 @@ import { supabase } from './supabase';
  * 该地址永不收发邮件，仅作唯一标识。用户全程看不到它。
  */
 const INTERNAL_DOMAIN = 'mjscore.local';
+export const DEFAULT_VENUE_NAME = '牌桌风云';
+export const VENUE_NAME_MAX_LENGTH = 20;
 
 export const USERNAME_RULE = '3-20 位，字母、数字、下划线';
+
+export function validateVenueName(name) {
+  const s = String(name || '').trim();
+  if (!s) return '请输入麻将馆名';
+  if (Array.from(s).length > VENUE_NAME_MAX_LENGTH) {
+    return `麻将馆名最多 ${VENUE_NAME_MAX_LENGTH} 个字符`;
+  }
+  if (/[\r\n]/.test(s)) return '麻将馆名不能包含换行';
+  return null;
+}
 
 export function validateUsername(name) {
   const s = String(name || '').trim();
@@ -28,20 +41,36 @@ export function toUsername(email) {
   return String(email || '').split('@')[0];
 }
 
-const AuthCtx = createContext({ session: null, user: null, username: '', loading: true });
+const AuthCtx = createContext({
+  session: null,
+  user: null,
+  username: '',
+  loading: true,
+  profileLoading: false,
+  profileError: null,
+  venueName: DEFAULT_VENUE_NAME,
+  venueNameRaw: '',
+  updateVenueName: async () => { throw new Error('未登录'); }
+});
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileName, setProfileName] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState(null);
+  const userId = session?.user?.id;
 
   useEffect(() => {
     let alive = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
+      setProfileName(null);
       setSession(data.session);
       setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setProfileName(null);
       setSession(s);
       setLoading(false);
     });
@@ -51,13 +80,55 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    if (!userId) {
+      setProfileName(null);
+      setProfileError(null);
+      setProfileLoading(false);
+      return () => { alive = false; };
+    }
+
+    setProfileLoading(true);
+    setProfileError(null);
+    getProfile(userId)
+      .then((profile) => {
+        if (!alive) return;
+        setProfileName(profile?.venue_name || null);
+      })
+      .catch((error) => {
+        // 配置读取失败不应阻断记分主流，分享时使用默认名称。
+        if (!alive) return;
+        setProfileName(null);
+        setProfileError(error);
+      })
+      .finally(() => alive && setProfileLoading(false));
+
+    return () => { alive = false; };
+  }, [userId]);
+
+  const updateVenueName = useCallback(async (nextName) => {
+    const value = String(nextName || '').trim();
+    const validation = validateVenueName(value);
+    if (validation) throw new Error(validation);
+    const result = await persistVenueName(session?.user?.id, value);
+    setProfileName(result?.venue_name || value);
+    setProfileError(null);
+    return result?.venue_name || value;
+  }, [session]);
+
   return (
     <AuthCtx.Provider
       value={{
         session,
         user: session?.user ?? null,
         username: toUsername(session?.user?.email),
-        loading
+        loading,
+        profileLoading,
+        profileError,
+        venueName: profileName || DEFAULT_VENUE_NAME,
+        venueNameRaw: profileName || '',
+        updateVenueName
       }}
     >
       {children}
