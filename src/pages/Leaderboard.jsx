@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ChevronRight, Share2 } from 'lucide-react';
+import { Plus, ChevronRight, Share2, Calendar, X } from 'lucide-react';
 import { getLeaderboard, getTableList } from '../lib/db';
 import { Avatar, Score, Loading, ErrorBox, RankDelta } from '../components/ui';
 import { getSnapshot, saveSnapshot, annotate, hasChanged, markWritten } from '../lib/rankTrack';
 import { SceneHeader, WoodFrame, MahjongTile, EmptyPanda, GoldTitle } from '../components/decor';
 import PosterModal from '../components/PosterModal';
 import { renderDailyPoster } from '../lib/poster';
-import { formatDate } from '../lib/model';
+import { formatDate, weekStart, monthStart } from '../lib/model';
 import { useAuth } from '../lib/auth';
 
 const SCOPES = [
@@ -17,6 +17,14 @@ const SCOPES = [
 ];
 const SCOPE_LABEL = { daily: '今日战报', weekly: '本周战报', total: '总榜战报' };
 const MEDAL_CHAR = ['冠', '亚', '季'];
+
+const TABLE_SCOPES = [
+  { key: 'all', label: '全部' },
+  { key: 'today', label: '今日' },
+  { key: 'week', label: '本周' },
+  { key: 'month', label: '本月' },
+  { key: 'custom', label: '自定义' },
+];
 
 export default function Leaderboard() {
   const nav = useNavigate();
@@ -30,6 +38,11 @@ export default function Leaderboard() {
   const [poster, setPoster] = useState(false);
 
   const [animate, setAnimate] = useState(false);
+
+  // 对战记录时间筛选
+  const [tableScope, setTableScope] = useState('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +86,29 @@ export default function Leaderboard() {
     }),
     [board, scope, gameCount, venueName]
   );
+
+  // 对战记录时间筛选逻辑
+  const switchTableScope = (key) => {
+    setTableScope(key);
+    if (key !== 'custom') {
+      setCustomFrom('');
+      setCustomTo('');
+    }
+  };
+
+  const filteredTables = tables.filter((t) => {
+    const d = t.played_date;
+    switch (tableScope) {
+      case 'today': return d === formatDate();
+      case 'week':  return d >= weekStart();
+      case 'month': return d >= monthStart();
+      case 'custom':
+        if (customFrom && d < customFrom) return false;
+        if (customTo && d > customTo) return false;
+        return true;
+      default: return true;
+    }
+  });
 
   return (
     <div className="page page-rich">
@@ -193,20 +229,69 @@ export default function Leaderboard() {
 
       {view === 'tables' && (
         <div className="page-inner">
+          {/* 时间筛选 pill */}
+          <div className="tabs scope-tabs">
+            {TABLE_SCOPES.map((s) => (
+              <button
+                key={s.key}
+                className={`tab-pill ${tableScope === s.key ? 'active' : ''}`}
+                onClick={() => switchTableScope(s.key)}
+              >
+                {s.key === 'custom' ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Calendar size={14} strokeWidth={1.5} />
+                    {s.label}
+                  </span>
+                ) : s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 自定义日期范围面板 */}
+          {tableScope === 'custom' && (
+            <div className="date-range-bar">
+              <input
+                type="date"
+                className="input date-input"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="date-range-sep">~</span>
+              <input
+                type="date"
+                className="input date-input"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+              <button
+                className="icon-btn date-range-clear"
+                onClick={() => { setCustomFrom(''); setCustomTo(''); setTableScope('all'); }}
+                aria-label="清除"
+              >
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+          )}
+
           {loading ? (
             <Loading />
-          ) : tables.length === 0 ? (
-            <WoodFrame title="尚无战绩">
-              <EmptyPanda text="还没有对战记录" hint="记录一局后这里会显示每一桌的明细">
-                <button className="btn btn-gold" style={{ maxWidth: 220, margin: '0 auto' }} onClick={() => nav('/record')}>
-                  记一局
-                </button>
+          ) : filteredTables.length === 0 ? (
+            <WoodFrame title="对战记录">
+              <EmptyPanda
+                text={tableScope === 'all' ? '还没有对战记录' : '该时段暂无对战记录'}
+                hint={tableScope === 'all' ? '记录一局后这里会显示每一桌的明细' : '换个时段看看'}
+              >
+                {tableScope === 'all' && (
+                  <button className="btn btn-gold" style={{ maxWidth: 220, margin: '0 auto' }} onClick={() => nav('/record')}>
+                    记一局
+                  </button>
+                )}
               </EmptyPanda>
             </WoodFrame>
           ) : (
-            <WoodFrame title="对战记录">
+            <WoodFrame title={`对战记录（${filteredTables.length}）`}>
               <div className="rank-list">
-                {tables.map((t, i) => (
+                {filteredTables.map((t, i) => (
                   <button
                     key={t.table_id}
                     className="table-row stagger"

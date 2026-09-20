@@ -274,6 +274,32 @@
   box-shadow: 0 2px 8px rgba(58,99,80,.3);
 }
 
+/* ---------- 自定义日期范围选择条 ---------- */
+.date-range-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-bottom: var(--s3);
+}
+.date-input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-aux);
+  padding: var(--s1) var(--s2);
+  text-align: center;
+}
+.date-range-sep {
+  color: var(--c-text-weak);
+  font-size: var(--fs-aux);
+  flex-shrink: 0;
+}
+.date-range-clear {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+}
+
+
 /* ---------- 木质雕花边框 ---------- */
 .wood-frame {
   position: relative;
