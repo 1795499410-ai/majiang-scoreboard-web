@@ -978,6 +978,38 @@
   border-top: 1px solid rgba(140,102,16,.2);
 }
 
+/* AI 问答页：时间范围选择条 */
+.ai-scope-bar {
+  display: flex;
+  gap: var(--s2);
+  padding: var(--s2) var(--page-x) 0;
+  justify-content: center;
+}
+.scope-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(140,102,16,.25);
+  background: rgba(255,253,247,.7);
+  font-size: var(--fs-aux);
+  color: #6E675C;
+  transition: all var(--t-fast);
+}
+.scope-chip.active {
+  background: linear-gradient(180deg, #E8C765, #C9A235);
+  color: #3E2C05;
+  border-color: #B8901F;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(140,102,16,.25);
+}
+.scope-chip:active {
+  transform: scale(.96);
+}
+.bubble-tag-ai {
+  color: #B8901F !important;
+  font-weight: 500;
+}
+
+
 /* ============================================================
    记分页 / 桌详情页：麻将桌绿绒台面
    ============================================================ */

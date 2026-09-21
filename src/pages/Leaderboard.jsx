@@ -102,19 +102,26 @@ export default function Leaderboard() {
     }
   };
 
-  // 调用 AI 生成评价
+  // 调用 AI 生成评价（走专用的 ai-review Edge Function）
   const askAiSummary = async () => {
     if (aiBusy || !tableSummary) return;
     setAiBusy(true);
     setAiEval('');
     const scopeLabel = TABLE_SCOPES.find((s) => s.key === tableScope)?.label || '全部';
-    const playerLines = tableSummary.players
-      .map((p) => `${p.nickname}：总积分${signed(p.points)}，参与${p.games}局`)
-      .join('；');
-    const prompt = `${scopeLabel}战绩总结：共${tableSummary.tableCount}桌、${tableSummary.totalGames}局。${playerLines}。请用轻松幽默的语气点评一下大家的表现，2-3句话即可。`;
     try {
-      const { data, error } = await supabase.functions.invoke('ai-query', {
-        body: { question: prompt }
+      const { data, error } = await supabase.functions.invoke('ai-review', {
+        body: {
+          scopeLabel,
+          tableCount: tableSummary.tableCount,
+          totalGames: tableSummary.totalGames,
+          players: tableSummary.players.map((p) => ({
+            player_id: p.player_id,
+            nickname: p.nickname,
+            points: p.points,
+            games: p.games,
+            wins: p.wins || 0
+          }))
+        }
       });
       if (!error && data?.answer) {
         setAiEval(data.answer);

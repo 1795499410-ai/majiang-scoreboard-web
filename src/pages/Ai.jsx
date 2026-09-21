@@ -5,12 +5,20 @@ import { getSnapshot } from '../lib/db';
 import { ruleAnswer, SUGGESTIONS } from '../lib/rules';
 import { MiniScene, GoldTitle, Panda } from '../components/decor';
 
+const SCOPE_OPTIONS = [
+  { key: 'all', label: '全部' },
+  { key: 'today', label: '今天' },
+  { key: 'week', label: '本周' },
+  { key: 'month', label: '本月' },
+];
+
 export default function Ai() {
   const [msgs, setMsgs] = useState([
     { role: 'ai', text: '问我战绩相关的问题，比如「今天谁赢最多」。', source: 'sys' }
   ]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState('all');
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -27,20 +35,21 @@ export default function Ai() {
     try {
       // 优先走 Edge Function（含 LLM + 数值校验），失败则本地规则兜底
       const { data, error } = await supabase.functions.invoke('ai-query', {
-        body: { question: q }
+        body: { question: q, scope }
       });
       if (!error && data?.answer) {
-        setMsgs((m) => [...m, { role: 'ai', text: data.answer, source: data.source }]);
+        const tag = data.source === 'llm' ? 'AI' : '规则引擎';
+        setMsgs((m) => [...m, { role: 'ai', text: data.answer, source: data.source, tag }]);
       } else {
         const snap = await getSnapshot();
         const r = ruleAnswer(q, snap);
-        setMsgs((m) => [...m, { role: 'ai', text: r.text, source: 'rule-local' }]);
+        setMsgs((m) => [...m, { role: 'ai', text: r.text, source: 'rule-local', tag: '规则引擎' }]);
       }
     } catch {
       try {
         const snap = await getSnapshot();
         const r = ruleAnswer(q, snap);
-        setMsgs((m) => [...m, { role: 'ai', text: r.text, source: 'rule-local' }]);
+        setMsgs((m) => [...m, { role: 'ai', text: r.text, source: 'rule-local', tag: '规则引擎' }]);
       } catch {
         setMsgs((m) => [...m, { role: 'ai', text: '查询失败，请稍后再试。', source: 'error' }]);
       }
@@ -56,23 +65,38 @@ export default function Ai() {
         牌桌智囊
       </GoldTitle>
 
+      {/* 时间范围选择 */}
+      <div className="ai-scope-bar">
+        {SCOPE_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            className={`scope-chip ${scope === opt.key ? 'active' : ''}`}
+            onClick={() => setScope(opt.key)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="chat-area">
         {msgs.map((m, i) => (
           <div key={i} className={`bubble-wrap ${m.role}`}>
             {m.role === 'ai' && (
-              <span className="bubble-face"><Panda size={34} /></span>
+              <span className="bubble-face"><Panda size={33} /></span>
             )}
             <div className={`bubble ${m.role}`}>
               {m.text}
               {m.source === 'rule' || m.source === 'rule-local' ? (
                 <span className="bubble-tag">规则引擎</span>
+              ) : m.source === 'llm' ? (
+                <span className="bubble-tag bubble-tag-ai">AI</span>
               ) : null}
             </div>
           </div>
         ))}
         {busy && (
           <div className="bubble-wrap ai">
-            <span className="bubble-face"><Panda size={34} /></span>
+            <span className="bubble-face"><Panda size={33} /></span>
             <div className="bubble ai bubble-typing">
               <span className="dot" /><span className="dot" /><span className="dot" />
             </div>
@@ -82,7 +106,7 @@ export default function Ai() {
       </div>
 
       <div className="fixed-bottom">
-        {/* 快捷指令常驻输入框上方，点击后不消失，方便反复复用 */}
+        {/* 快捷指令常驻输入框上方 */}
         <div className="chips chips-bar">
           {SUGGESTIONS.map((s) => (
             <button
