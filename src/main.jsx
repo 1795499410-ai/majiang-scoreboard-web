@@ -41,27 +41,27 @@ function LoginRoute() {
 function App() {
   return (
     <HashRouter>
-      <Routes>
-        <Route path="/login" element={<LoginRoute />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/" element={<Guard><Leaderboard /></Guard>} />
-        <Route path="/players" element={<Guard><Players /></Guard>} />
-        <Route path="/ai" element={<Guard><Ai /></Guard>} />
-        <Route path="/me" element={<Guard><Me /></Guard>} />
-        <Route path="/record" element={<Guard withTabBar={false}><Record /></Guard>} />
-        <Route path="/table/:tableId" element={<Guard withTabBar={false}><TableDetail /></Guard>} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AuthProvider>
+        <ToastProvider>
+          <Routes>
+            <Route path="/login" element={<LoginRoute />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/" element={<Guard><Leaderboard /></Guard>} />
+            <Route path="/players" element={<Guard><Players /></Guard>} />
+            <Route path="/ai" element={<Guard><Ai /></Guard>} />
+            <Route path="/me" element={<Guard><Me /></Guard>} />
+            <Route path="/record" element={<Guard withTabBar={false}><Record /></Guard>} />
+            <Route path="/table/:tableId" element={<Guard withTabBar={false}><TableDetail /></Guard>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ToastProvider>
+      </AuthProvider>
     </HashRouter>
   );
 }
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <ToastProvider>
-        <App />
-      </ToastProvider>
-    </AuthProvider>
+    <App />
   </React.StrictMode>
 );
