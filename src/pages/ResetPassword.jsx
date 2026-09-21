@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { translateAuthError } from '../lib/auth';
@@ -6,35 +6,9 @@ import { translateAuthError } from '../lib/auth';
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-
-  // 从 URL hash 中提取 recovery token
-  const getRecoveryToken = useCallback(() => {
-    const hash = window.location.hash;
-    if (!hash) return null;
-    // HashRouter 格式: #/reset-password?access_token=xxx&type=recovery
-    const queryStart = hash.indexOf('?');
-    if (queryStart === -1) return null;
-    const queryString = hash.substring(queryStart + 1);
-    const params = new URLSearchParams(queryString);
-    const token = params.get('access_token');
-    const type = params.get('type');
-    if (type !== 'recovery' || !token) return null;
-    return token;
-  }, []);
-
-  useEffect(() => {
-    const token = getRecoveryToken();
-    if (!token) {
-      setError('重置链接无效或已过期，请重新申请密码重置');
-      setLoading(false);
-      return;
-    }
-    setLoading(false);
-  }, [getRecoveryToken]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -50,37 +24,17 @@ export default function ResetPassword() {
     }
 
     try {
-      const token = getRecoveryToken();
-      if (!token) {
-        setError('重置链接无效或已过期');
-        return;
-      }
-
-      // 使用 recovery token 更新密码
-      const { error: updateError } = await supabase.auth.updateUser(
-        { password },
-        { accessToken: token }
-      );
-
+      // PASSWORD_RECOVERY 事件触发时 Supabase 已验证 token 并建立 session
+      const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
         throw new Error(translateAuthError(updateError.message, 'update'));
       }
-
       setSuccess(true);
-      // 3 秒后跳转到登录页
       setTimeout(() => navigate('/login', { replace: true }), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : '重置失败，请重试');
     }
   };
-
-  if (loading) {
-    return (
-      <div className="loading" style={{ paddingTop: '40vh', textAlign: 'center' }}>
-        验证中…
-      </div>
-    );
-  }
 
   if (success) {
     return (
