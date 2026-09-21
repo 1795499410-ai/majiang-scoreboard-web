@@ -92,19 +92,6 @@ export default function Leaderboard() {
     [board, scope, gameCount, venueName]
   );
 
-  const TABLE_SCOPE_LABEL = { all: "全部对战", today: "今日对战", week: "本周对战", month: "本月对战", custom: "自定义对战" };
-
-  const buildTablesPoster = useCallback(
-    () => renderTablesPoster({
-      scopeLabel: TABLE_SCOPE_LABEL[tableScope] || "全部对战",
-      tableSummary,
-      aiEval,
-      filteredTables,
-      venueName
-    }),
-    [tableScope, tableSummary, aiEval, filteredTables, venueName]
-  );
-
   // 对战记录时间筛选逻辑
   const switchTableScope = (key) => {
     setAiEval('');
@@ -188,6 +175,19 @@ export default function Leaderboard() {
   };
 
   const tableSummary = computeSummary();
+
+  const TABLE_SCOPE_LABEL = { all: "全部对战", today: "今日对战", week: "本周对战", month: "本月对战", custom: "自定义对战" };
+
+  const buildTablesPoster = useCallback(
+    () => renderTablesPoster({
+      scopeLabel: TABLE_SCOPE_LABEL[tableScope] || "全部对战",
+      tableSummary,
+      aiEval,
+      filteredTables,
+      venueName
+    }),
+    [tableScope, tableSummary, aiEval, filteredTables, venueName]
+  );
 
   return (
     <div className="page page-rich">
