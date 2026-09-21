@@ -349,36 +349,72 @@ export default function Leaderboard() {
             </WoodFrame>
           ) : (
             <>
-              {/* 战绩总结卡片 */}
+              {/* 战绩总结 - 仿照首页积分排名设计 */}
               {tableSummary && (
-                <div className="summary-card">
-                  <div className="summary-header">
-                    <span className="summary-title">战绩总结</span>
-                    <span className="summary-meta">{tableSummary.tableCount}桌 · {tableSummary.totalGames}局</span>
-                  </div>
-                  <div className="summary-players">
-                    {tableSummary.players.map((p) => (
-                      <div className="summary-player" key={p.player_id}>
-                        <Avatar nickname={p.nickname} colorIndex={p.avatar_color} size="sm" />
-                        <span className="summary-nick">{p.nickname}</span>
-                        <Score value={p.points} className="summary-score" />
+                <>
+                  {/* 前三名 podium */}
+                  {tableSummary.players.length >= 1 && (
+                    <WoodFrame title="战绩风云榜" tone="stage">
+                      <div className="podium">
+                        {tableSummary.players.slice(0, 3).map((p, idx) => (
+                          <div className={`podium-item podium-rank-${idx}`} key={p.player_id}>
+                            <div className="crown-wrap">
+                              <span className={`crown crown-${idx}`}>{MEDAL_CHAR[idx]}</span>
+                              {idx === 0 && <span className="crown-ray" />}
+                            </div>
+                            <MahjongTile rank={idx} flipDelay={idx * 140}>
+                              <div className="mj-rank">{idx + 1}</div>
+                              <Avatar nickname={p.nickname} colorIndex={p.avatar_color} />
+                              <div className="mj-name">{p.nickname}</div>
+                              <Score value={p.points} className="mj-score" />
+                              <div className="mj-meta">{p.games}局</div>
+                            </MahjongTile>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <button
-                    className="btn btn-sm btn-outline summary-ai-btn"
-                    onClick={askAiSummary}
-                    disabled={aiBusy}
-                  >
-                    {aiBusy ? 'AI 点评中…' : '🤖 AI 点评'}
-                  </button>
-                  {aiEval && (
-                    <div className="summary-ai-text">
-                      <span className="summary-ai-label">AI 点评</span>
-                      <p>{aiEval}</p>
-                    </div>
+                    </WoodFrame>
                   )}
-                </div>
+
+                  {/* 其他玩家列表 */}
+                  {tableSummary.players.length > 3 && (
+                    <WoodFrame title="战绩群雄谱">
+                      <div className="rank-list">
+                        {tableSummary.players.slice(3).map((p, i) => (
+                          <div
+                            className="rank-row stagger"
+                            key={p.player_id}
+                            style={{ animationDelay: `${i * 55}ms` }}
+                          >
+                            <div className="rank-no num">{i + 4}</div>
+                            <Avatar nickname={p.nickname} colorIndex={p.avatar_color} size="sm" />
+                            <div className="row-main">
+                              <div className="row-title">{p.nickname}</div>
+                              <div className="row-sub">{p.games}局</div>
+                            </div>
+                            <Score value={p.points} className="rank-score" />
+                          </div>
+                        ))}
+                      </div>
+                    </WoodFrame>
+                  )}
+
+                  {/* AI 点评按钮和结果 */}
+                  <div className="summary-ai-section">
+                    <button
+                      className="btn btn-outline summary-ai-btn"
+                      onClick={askAiSummary}
+                      disabled={aiBusy}
+                    >
+                      {aiBusy ? 'AI 点评中…' : '🤖 AI 点评'}
+                    </button>
+                    {aiEval && (
+                      <div className="summary-ai-text">
+                        <span className="summary-ai-label">AI 点评</span>
+                        <p>{aiEval}</p>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
               <WoodFrame title={`对战记录（${filteredTables.length}）`} >

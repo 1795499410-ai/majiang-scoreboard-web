@@ -1272,3 +1272,41 @@
   line-height: 1.6;
   margin: 0;
 }
+
+/* ============================================================
+   战绩总结 - AI 点评区域
+   ============================================================ */
+.summary-ai-section {
+  margin-top: var(--s4);
+  margin-bottom: var(--s4);
+}
+.summary-ai-btn {
+  width: 100%;
+  height: 44px;
+  font-size: var(--fs-h3);
+  font-weight: 500;
+}
+.summary-ai-text {
+  margin-top: var(--s3);
+  background: linear-gradient(180deg, rgba(74,124,99,.08), rgba(74,124,99,.04));
+  border: 1px solid rgba(74,124,99,.2);
+  border-radius: var(--r-md);
+  padding: var(--s4);
+  animation: fade-in 300ms ease;
+}
+.summary-ai-label {
+  display: block;
+  font-size: var(--fs-aux);
+  color: var(--c-primary);
+  font-weight: 600;
+  margin-bottom: var(--s2);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid rgba(74,124,99,.15);
+}
+.summary-ai-text p {
+  font-size: var(--fs-body);
+  color: var(--c-text);
+  line-height: 1.7;
+  margin: 0;
+  font-style: italic;
+}
