@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, Shield, Database, KeyRound, AlertTriangle, Eye, EyeOff, Store } from 'lucide-react';
+import { LogOut, Shield, Database, KeyRound, Eye, EyeOff, Store } from 'lucide-react';
 import {
   useAuth,
   signOut,
@@ -130,11 +130,6 @@ export default function Me() {
               <div className="row-sub">定期更换更安全</div>
             </div>
           </button>
-        </div>
-
-        <div className="alert alert-warn" style={{ display: 'flex', gap: 'var(--s2)' }}>
-          <AlertTriangle size={16} strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>账号未绑定邮箱或手机，密码遗忘后无法自助找回，请务必记牢。</span>
         </div>
 
         <div className="card">
