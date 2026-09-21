@@ -19,13 +19,5 @@
   },
   "devDependencies": {
     "@rollup/wasm-node": "4.24.4"
-  },
-  "overrides": {
-    "rollup": "npm:@rollup/wasm-node@4.24.4"
-  },
-  "pnpm": {
-    "overrides": {
-      "rollup": "npm:@rollup/wasm-node@4.24.4"
-    }
   }
 }
