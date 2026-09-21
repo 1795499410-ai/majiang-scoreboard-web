@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import { getProfile, updateVenueName as persistVenueName } from './db';
 
@@ -27,13 +26,6 @@ export function toUsername(email) {
   return String(email || '').split('@')[0];
 }
 
-/** 检测 URL hash 中是否有 recovery token（Supabase 密码重置回调） */
-function isRecoveryFlow() {
-  const hash = window.location.hash;
-  if (!hash) return false;
-  return hash.includes('type=recovery') || hash.includes('type%3Drecovery');
-}
-
 const AuthCtx = createContext({
   session: null,
   user: null,
@@ -53,15 +45,6 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState(null);
   const userId = session?.user?.id;
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // 页面加载时如果 hash 中有 recovery token，立即跳转到重置密码页
-    // 这必须在 LoginRoute 的 session 重定向之前发生
-    if (isRecoveryFlow()) {
-      navigate('/reset-password', { replace: true });
-    }
-  }, [navigate]);
 
   useEffect(() => {
     let alive = true;
@@ -75,15 +58,13 @@ export function AuthProvider({ children }) {
       setProfileName(null);
       setSession(s);
       setLoading(false);
-      if (event === 'PASSWORD_RECOVERY') {
-        navigate('/reset-password', { replace: true });
-      }
+
     });
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -176,16 +157,6 @@ export async function changePassword(newPassword) {
   if (error) throw new Error(translateAuthError(error.message, 'update'));
 }
 
-export async function sendPasswordReset(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    String(email).trim().toLowerCase(),
-    {
-      redirectTo: `${window.location.origin}${window.location.pathname}#type=recovery`
-    }
-  );
-  if (error) throw new Error(translateAuthError(error.message, 'reset'));
-}
-
 export function translateAuthError(msg, ctx) {
   const m = String(msg);
   if (/Invalid login credentials/i.test(m)) return '邮箱或密码不正确';
@@ -202,6 +173,5 @@ export function translateAuthError(msg, ctx) {
   }
   if (/same as the old|should be different/i.test(m)) return '新密码不能和旧密码相同';
   if (ctx === 'signup' && /signups not allowed|disabled/i.test(m)) return '当前不开放注册';
-  if (ctx === 'reset' && /not found|not registered/i.test(m)) return '该邮箱未注册';
   return m;
 }

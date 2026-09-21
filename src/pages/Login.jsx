@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { signIn, signUp, validateEmail } from '../lib/auth';
 import { ErrorBox } from '../components/ui';
@@ -13,7 +12,6 @@ export default function Login() {
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   const switchMode = (m) => {
     setMode(m);
@@ -113,25 +111,6 @@ export default function Login() {
                   </button>
                 </div>
               </div>
-
-              {mode === 'signin' && (
-                <div style={{ textAlign: 'right', marginTop: -8, marginBottom: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/forgot-password')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#b8860b',
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      padding: 0
-                    }}
-                  >
-                    忘记密码？
-                  </button>
-                </div>
-              )}
 
               {mode === 'signup' && (
                 <div className="field">
