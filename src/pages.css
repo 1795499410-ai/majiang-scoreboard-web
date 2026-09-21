@@ -1193,3 +1193,82 @@
   color: #6B4E10;
   background: linear-gradient(180deg, #FFFDF7, #F4EEE0);
 }
+
+/* ============================================================
+   战绩总结卡片（对战记录页）
+   ============================================================ */
+.summary-card {
+  background: linear-gradient(180deg, #FFFDF7, #F7F2E6);
+  border: 1px solid rgba(140,102,16,.22);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  margin-bottom: var(--s4);
+  box-shadow: 0 2px 10px rgba(82,44,24,.08);
+}
+.summary-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--s3);
+}
+.summary-title {
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: #5A4A26;
+}
+.summary-meta {
+  font-size: var(--fs-aux);
+  color: var(--c-text-weak);
+}
+.summary-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s3);
+  margin-bottom: var(--s3);
+}
+.summary-player {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--s1) var(--s2);
+  background: rgba(255,253,246,.8);
+  border: 1px solid rgba(140,102,16,.12);
+  border-radius: var(--r-sm);
+}
+.summary-nick {
+  font-size: var(--fs-aux);
+  color: var(--c-text-sub);
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-score {
+  font-family: var(--ff-num);
+  font-size: var(--fs-aux);
+  font-weight: 600;
+}
+.summary-ai-btn {
+  width: 100%;
+  margin-bottom: var(--s2);
+}
+.summary-ai-text {
+  background: rgba(74,124,99,.06);
+  border: 1px solid rgba(74,124,99,.15);
+  border-radius: var(--r-md);
+  padding: var(--s3);
+  animation: fade-in 200ms ease;
+}
+.summary-ai-label {
+  display: block;
+  font-size: var(--fs-note);
+  color: var(--c-primary);
+  font-weight: 600;
+  margin-bottom: var(--s1);
+}
+.summary-ai-text p {
+  font-size: var(--fs-body);
+  color: var(--c-text);
+  line-height: 1.6;
+  margin: 0;
+}

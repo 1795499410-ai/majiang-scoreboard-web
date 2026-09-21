@@ -2,12 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ChevronRight, Share2, Calendar, X } from 'lucide-react';
 import { getLeaderboard, getTableList } from '../lib/db';
+import { supabase } from '../lib/supabase';
 import { Avatar, Score, Loading, ErrorBox, RankDelta } from '../components/ui';
 import { getSnapshot, saveSnapshot, annotate, hasChanged, markWritten } from '../lib/rankTrack';
 import { SceneHeader, WoodFrame, MahjongTile, EmptyPanda, GoldTitle } from '../components/decor';
 import PosterModal from '../components/PosterModal';
 import { renderDailyPoster } from '../lib/poster';
-import { formatDate, weekStart, monthStart } from '../lib/model';
+import { formatDate, weekStart, monthStart, signed } from '../lib/model';
 import { useAuth } from '../lib/auth';
 
 const SCOPES = [
@@ -43,6 +44,10 @@ export default function Leaderboard() {
   const [tableScope, setTableScope] = useState('all');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+
+  // 战绩总结 & AI 评价
+  const [aiEval, setAiEval] = useState('');
+  const [aiBusy, setAiBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -89,10 +94,64 @@ export default function Leaderboard() {
 
   // 对战记录时间筛选逻辑
   const switchTableScope = (key) => {
+    setAiEval('');
     setTableScope(key);
     if (key !== 'custom') {
       setCustomFrom('');
       setCustomTo('');
+    }
+  };
+
+  // 从筛选后的桌次聚合每位玩家的总积分
+  const computeSummary = () => {
+    if (!filteredTables.length) return null;
+    const totals = {};
+    let totalGames = 0;
+    filteredTables.forEach((t) => {
+      totalGames += t.rounds;
+      t.players.forEach((p) => {
+        if (!totals[p.player_id]) {
+          totals[p.player_id] = {
+            player_id: p.player_id,
+            nickname: p.nickname,
+            avatar_color: p.avatar_color,
+            points: 0,
+            games: 0
+          };
+        }
+        totals[p.player_id].points += p.points;
+        totals[p.player_id].games += 1;
+      });
+    });
+    const sorted = Object.values(totals).sort((a, b) => b.points - a.points);
+    return { players: sorted, totalGames, tableCount: filteredTables.length };
+  };
+
+  const tableSummary = computeSummary();
+
+  // 调用 AI 生成评价
+  const askAiSummary = async () => {
+    if (aiBusy || !tableSummary) return;
+    setAiBusy(true);
+    setAiEval('');
+    const scopeLabel = TABLE_SCOPES.find((s) => s.key === tableScope)?.label || '全部';
+    const playerLines = tableSummary.players
+      .map((p) => `${p.nickname}：总积分${signed(p.points)}，参与${p.games}局`)
+      .join('；');
+    const prompt = `${scopeLabel}战绩总结：共${tableSummary.tableCount}桌、${tableSummary.totalGames}局。${playerLines}。请用轻松幽默的语气点评一下大家的表现，2-3句话即可。`;
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-query', {
+        body: { question: prompt }
+      });
+      if (!error && data?.answer) {
+        setAiEval(data.answer);
+      } else {
+        setAiEval('AI 暂时无法生成评价，请稍后再试。');
+      }
+    } catch {
+      setAiEval('网络异常，AI 评价生成失败。');
+    } finally {
+      setAiBusy(false);
     }
   };
 
@@ -289,7 +348,40 @@ export default function Leaderboard() {
               </EmptyPanda>
             </WoodFrame>
           ) : (
-            <WoodFrame title={`对战记录（${filteredTables.length}）`}>
+            <>
+              {/* 战绩总结卡片 */}
+              {tableSummary && (
+                <div className="summary-card">
+                  <div className="summary-header">
+                    <span className="summary-title">战绩总结</span>
+                    <span className="summary-meta">{tableSummary.tableCount}桌 · {tableSummary.totalGames}局</span>
+                  </div>
+                  <div className="summary-players">
+                    {tableSummary.players.map((p) => (
+                      <div className="summary-player" key={p.player_id}>
+                        <Avatar nickname={p.nickname} colorIndex={p.avatar_color} size="sm" />
+                        <span className="summary-nick">{p.nickname}</span>
+                        <Score value={p.points} className="summary-score" />
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className="btn btn-sm btn-outline summary-ai-btn"
+                    onClick={askAiSummary}
+                    disabled={aiBusy}
+                  >
+                    {aiBusy ? 'AI 点评中…' : '🤖 AI 点评'}
+                  </button>
+                  {aiEval && (
+                    <div className="summary-ai-text">
+                      <span className="summary-ai-label">AI 点评</span>
+                      <p>{aiEval}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <WoodFrame title={`对战记录（${filteredTables.length}）`} >
               <div className="rank-list">
                 {filteredTables.map((t, i) => (
                   <button
@@ -316,6 +408,7 @@ export default function Leaderboard() {
                 ))}
               </div>
             </WoodFrame>
+            </>
           )}
         </div>
       )}
