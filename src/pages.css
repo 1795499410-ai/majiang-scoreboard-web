@@ -263,8 +263,23 @@
 }
 .share-btn:active { transform: translateY(1px) scale(.97); box-shadow: 0 1px 3px rgba(140,102,16,.25); }
 
-.scope-tabs { padding-bottom: var(--s3); }
+.scope-tabs {
+  padding-bottom: var(--s3);
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: var(--s2);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scope-tabs::-webkit-scrollbar {
+  display: none;
+}
 .tab-pill {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 6px 12px;
+  font-size: var(--fs-aux);
   border: 1px solid transparent;
   transition: all 200ms ease;
 }
@@ -1410,8 +1425,8 @@
 /* 排名标识 */
 .card-rank {
   position: absolute;
-  top: -6px;
-  left: -6px;
+  top: 4px;
+  left: 4px;
   width: 22px;
   height: 22px;
   border-radius: 50%;
