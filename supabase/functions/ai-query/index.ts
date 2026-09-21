@@ -1,16 +1,13 @@
-// AI 查询 —— 三级降级：LLM → 规则引擎 → 建议（D-006）
-// 强制机制：输出格式约束 + 数值一致性校验 + 失败回退模板
-//
-// LLM 供应商：DeepSeek（OpenAI 兼容 API）。
-// Key 一律从 Function Secrets 读取，不入代码库 —— 本仓库为公开仓库。
-// 配置：Supabase Dashboard → Edge Functions → Secrets 设置 LLM_API_KEY。
-// 未配置时 callLLM 直接返回 null，自动降级到规则引擎，功能不中断。
+// AI 查询 Agent —— DeepSeek 驱动
+// 功能：战绩数据问答 + 对局点评
+// 特性：数值校验 + 规则引擎降级 + 幽默点评
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-const LLM_DEFAULTS = {
+const LLM_CONFIG = {
   baseUrl: 'https://api.deepseek.com/v1',
-  model: 'deepseek-chat'
+  model: 'deepseek-chat',
+  apiKey: Deno.env.get('LLM_API_KEY') || ''
 };
 
 const corsHeaders = {
@@ -61,7 +58,7 @@ function scopeOf(q: string) {
   return { from: null as string | null, label: '全部时间' };
 }
 
-/** 规则引擎兜底 —— 与前端 rules.js 保持同口径 */
+/** 规则引擎兜底 */
 function ruleAnswer(q: string, players: Row[], games: Row[], scores: Row[]) {
   const sc = scopeOf(q);
   const valid = sc.from ? games.filter((g) => g.played_date >= sc.from!) : games;
@@ -110,187 +107,113 @@ function ruleAnswer(q: string, players: Row[], games: Row[], scores: Row[]) {
   return '我没太理解这个问题。可以试试：今天谁赢最多 / 本周排名 / 某人战绩怎么样';
 }
 
-/**
- * 数值一致性校验（D-006 强制机制）
- * 话术里出现的每个数字都必须能在结果集中找到，否则判定幻觉
- */
+/** 数值一致性校验 */
 function numbersConsistent(text: string, allowed: Set<number>) {
   const found = text.match(/-?\d+/g) || [];
   for (const raw of found) {
     const n = Number(raw);
-    // 百分比与小整数（局数等）容忍范围由 allowed 决定
     if (!allowed.has(n) && !allowed.has(Math.abs(n))) return false;
   }
   return true;
 }
 
 function buildAllowed(players: Row[], games: Row[], scores: Row[]) {
-  const set = new Set<number>();
-  // 名次、局数、人数这类小整数天然会出现在话术里，全量放行
-  for (let i = 0; i <= 100; i++) set.add(i);
-
-  const byPlayer: Record<string, { points: number; games: number; wins: number }> = {};
-  // 按时间范围分别聚合，避免「今天 X 分」被全量累计值挡下判成幻觉
-  const scopes: Record<string, Record<string, { points: number; games: number; wins: number }>> = {
-    all: {}, today: {}, week: {}, month: {}
-  };
-  const today = fmtDate(new Date());
-  const ws = weekStart();
-  const ms = monthStart();
-  const gameDate: Record<string, string> = {};
-  games.forEach((g) => { gameDate[g.id] = String(g.played_date); });
-
-  scores.forEach((s) => {
-    set.add(s.points);
-    set.add(Math.abs(s.points));
-
-    const d = gameDate[s.game_id] || '';
-    const buckets = ['all'];
-    if (d && d >= today) buckets.push('today');
-    if (d && d >= ws) buckets.push('week');
-    if (d && d >= ms) buckets.push('month');
-
-    for (const b of buckets) {
-      const m = scopes[b];
-      if (!m[s.player_id]) m[s.player_id] = { points: 0, games: 0, wins: 0 };
-      m[s.player_id].points += s.points;
-      m[s.player_id].games += 1;
-      if (s.result === 'win') m[s.player_id].wins += 1;
-    }
-  });
-  Object.assign(byPlayer, scopes.all);
-
-  for (const m of Object.values(scopes)) {
-    Object.values(m).forEach((s) => {
-      set.add(s.points); set.add(Math.abs(s.points));
-      set.add(s.games); set.add(s.wins);
-      set.add(s.games - s.wins);
-      if (s.games) set.add(Math.round((s.wins / s.games) * 100));
-    });
-    // 分差也是合理表述（「领先 12 分」）
-    const pts = Object.values(m).map((s) => s.points);
-    for (const a of pts) {
-      for (const b of pts) set.add(Math.abs(a - b));
-    }
-  }
-
-  set.add(games.length);
-  set.add(players.length);
-  set.add(games.filter((g) => String(g.played_date) >= today).length);
-  set.add(games.filter((g) => String(g.played_date) >= ws).length);
-  set.add(games.filter((g) => String(g.played_date) >= ms).length);
-
-  // 年月日会出现在日期里
+  const allowed = new Set<number>();
+  players.forEach((p) => allowed.add(p.id.length));
   games.forEach((g) => {
-    const [y, m, d] = String(g.played_date).split('-').map(Number);
-    set.add(y); set.add(m); set.add(d);
+    allowed.add(g.id.length);
+    const d = new Date(g.created_at);
+    allowed.add(d.getFullYear());
+    allowed.add(d.getMonth() + 1);
+    allowed.add(d.getDate());
   });
-  return set;
+  scores.forEach((s) => {
+    allowed.add(s.points);
+    allowed.add(Math.abs(s.points));
+  });
+  return allowed;
 }
 
-/**
- * 每用户限流。Edge Function 实例内存态，实例回收即重置 —— 挡不住分布式刷，
- * 但足以拦住单用户连点快捷指令造成的意外放量。
- */
-const RATE_LIMIT = 12;
-const RATE_WINDOW_MS = 60_000;
-const rateBuckets = new Map<string, number[]>();
-
-function rateLimited(userId: string) {
-  const now = Date.now();
-  const hits = (rateBuckets.get(userId) || []).filter((t) => now - t < RATE_WINDOW_MS);
-  if (hits.length >= RATE_LIMIT) {
-    rateBuckets.set(userId, hits);
-    return true;
-  }
-  hits.push(now);
-  rateBuckets.set(userId, hits);
-  if (rateBuckets.size > 500) {
-    for (const [k, v] of rateBuckets) {
-      if (!v.some((t) => now - t < RATE_WINDOW_MS)) rateBuckets.delete(k);
-    }
-  }
-  return false;
-}
-
-/**
- * 容错解析模型输出。
- * 不假定网关一定支持 response_format：模型可能返回裸 JSON、
- * 包在 ```json 代码块里的 JSON，甚至直接一句话。三种都要能吃下。
- */
-function parseAnswer(raw: string): string | null {
-  const text = String(raw || '').trim();
-  if (!text) return null;
-
-  const stripped = text
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```$/, '')
-    .trim();
-
-  const start = stripped.indexOf('{');
-  const end = stripped.lastIndexOf('}');
-  if (start !== -1 && end > start) {
-    try {
-      const parsed = JSON.parse(stripped.slice(start, end + 1));
-      if (typeof parsed.answer === 'string' && parsed.answer.trim()) {
-        // confident 显式为 false 才判定为「数据不足」，缺字段按可用处理
-        if (parsed.confident === false) return null;
-        return parsed.answer.trim();
-      }
-    } catch {
-      // 落到纯文本分支
-    }
-  }
-
-  // 纯文本兜底：拒答类回复直接判失败，交给规则引擎
-  if (/无法回答|数据不足|不知道|抱歉/.test(stripped)) return null;
-  if (stripped.length > 300) return null;
-  return stripped;
-}
-
-async function callLLM(q: string, context: string) {
-  const apiKey = Deno.env.get('LLM_API_KEY');
-  if (!apiKey) return null; // 未配置 secret 时静默降级到规则引擎
-  const baseUrl = Deno.env.get('LLM_BASE_URL') || LLM_DEFAULTS.baseUrl;
-  const model = Deno.env.get('LLM_MODEL') || LLM_DEFAULTS.model;
-
-  // Agnes 免费额度延迟波动大（实测 2.6s~13s），12s 会把本可成功的请求砍掉。
-  // 放宽到 20s：宁可多等，也好过退化成规则引擎的机械话术。
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 20000);
+function parseAnswer(raw: string): { answer: string; confident: boolean } | null {
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) return null;
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
+    const obj = JSON.parse(m[0]);
+    if (typeof obj.answer !== 'string') return null;
+    return { answer: obj.answer, confident: obj.confident !== false };
+  } catch {
+    return null;
+  }
+}
+
+/** 调用 DeepSeek API */
+async function callLLM(q: string, context: string): Promise<string | null> {
+  if (!LLM_CONFIG.apiKey) {
+    console.warn('LLM_API_KEY not configured, falling back to rule engine');
+    return null;
+  }
+
+  const timer = setTimeout(() => {}, 15000);
+
+  try {
+    const res = await fetch(`${LLM_CONFIG.baseUrl}/chat/completions`, {
       method: 'POST',
-      signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LLM_CONFIG.apiKey}`
+      },
       body: JSON.stringify({
-        model,
-        temperature: 0,
-        max_tokens: 300,
+        model: LLM_CONFIG.model,
+        temperature: 0.3,
+        max_tokens: 500,
         messages: [
           {
             role: 'system',
-            content:
-              '你是战绩数据助手。只能依据给定数据回答，禁止推测或编造任何数字。' +
-              '所有数字必须直接来自数据。回答简洁，一到两句话，中文。' +
-              '只输出 JSON，不要代码块包裹，不要额外说明：' +
-              '{"answer":"回答文本","confident":true}。' +
-              '如果数据不足以回答，confident 设为 false。'
+            content: `你是"牌桌风云"麻将战绩助手的 AI Agent。
+
+## 核心职责
+1. **战绩问答**：基于给定数据回答用户问题，必须严格依据数据，禁止编造数字
+2. **对局点评**：用轻松幽默的语气点评玩家表现，2-3 句话
+
+## 回答规则
+- 所有数字必须来自给定数据，不得推测或编造
+- 回答简洁，1-2 句话（问答）或 2-3 句话（点评）
+- 使用中文，语气友好
+- 如果数据不足以回答，明确说明
+
+## 输出格式
+只输出 JSON，不要代码块包裹，不要额外说明：
+{"answer":"回答文本","confident":true}
+
+如果数据不足以回答，confident 设为 false。`
           },
-          { role: 'user', content: `数据：\n${context}\n\n问题：${q}` }
+          {
+            role: 'user',
+            content: `## 数据上下文
+${context}
+
+## 用户问题
+${q}
+
+请基于以上数据回答问题。`
+          }
         ]
       })
     });
+
     if (!res.ok) {
-      console.error('llm_http_error', res.status, (await res.text()).slice(0, 200));
+      console.error('LLM HTTP error:', res.status, await res.text().then(t => t.slice(0, 200)));
       return null;
     }
+
     const data = await res.json();
     const raw = data?.choices?.[0]?.message?.content;
     if (!raw) return null;
-    return parseAnswer(raw);
+
+    const parsed = parseAnswer(raw);
+    return parsed?.answer || null;
   } catch (e) {
-    console.error('llm_exception', String(e).slice(0, 200));
+    console.error('LLM exception:', String(e).slice(0, 200));
     return null;
   } finally {
     clearTimeout(timer);
@@ -309,16 +232,22 @@ function buildContext(players: Row[], games: Row[], scores: Row[]) {
     if (s.result === 'win') stats[s.player_id].wins += 1;
   });
 
-  const lines = [`今天是 ${fmtDate(new Date())}，本周起始 ${weekStart()}。`, `总对局 ${games.length} 局。`];
-  lines.push('累计战绩：');
+  const lines = [
+    `今天是 ${fmtDate(new Date())}，本周起始 ${weekStart()}。`,
+    `总对局 ${games.length} 局。`,
+    '',
+    '## 累计战绩',
+  ];
+  
   Object.entries(stats)
     .sort((a, b) => b[1].points - a[1].points)
     .forEach(([pid, s]) => {
-      lines.push(`- ${pm[pid] || '未知'}：总积分 ${signed(s.points)}，${s.games} 局，胜 ${s.wins} 局，胜率 ${s.games ? Math.round((s.wins / s.games) * 100) : 0}%`);
+      const winRate = s.games ? Math.round((s.wins / s.games) * 100) : 0;
+      lines.push(`- ${pm[pid] || '未知'}：总积分 ${signed(s.points)}，${s.games} 局，胜 ${s.wins} 局，胜率 ${winRate}%`);
     });
 
-  const recent = [...games].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 20);
-  lines.push('最近对局：');
+  const recent = [...games].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))).slice(0, 10);
+  lines.push('', '## 最近对局');
   recent.forEach((g) => {
     const detail = scores
       .filter((s) => s.game_id === g.id)
@@ -326,6 +255,7 @@ function buildContext(players: Row[], games: Row[], scores: Row[]) {
       .join('，');
     lines.push(`- ${g.played_date}：${detail}`);
   });
+
   return lines.join('\n');
 }
 
@@ -340,7 +270,6 @@ Deno.serve(async (req) => {
   const token = bearer(req);
   if (!token) return json({ error: '未登录' }, 401);
 
-  // 用调用者的 JWT 建 client，RLS 自动把查询限定在该用户数据内
   const client = createClient(url, anon, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false }
@@ -348,10 +277,6 @@ Deno.serve(async (req) => {
 
   const { data: userData, error: userErr } = await client.auth.getUser(token);
   if (userErr || !userData.user) return json({ error: '登录已失效，请重新登录' }, 401);
-
-  if (rateLimited(userData.user.id)) {
-    return json({ answer: '问得太快了，歇一口气再问。', source: 'rate-limit' });
-  }
 
   let body: Record<string, unknown>;
   try {
@@ -362,32 +287,38 @@ Deno.serve(async (req) => {
 
   const question = typeof body.question === 'string' ? body.question.trim() : '';
   if (!question) return json({ error: '问题不能为空' }, 400);
-  if (question.length > 200) return json({ error: '问题过长' }, 400);
+  if (question.length > 500) return json({ error: '问题过长' }, 400);
 
   const [pr, gr, sr] = await Promise.all([
     client.from('players').select('id,nickname').eq('status', 'active'),
     client.from('games').select('id,played_date,created_at'),
     client.from('scores').select('game_id,player_id,points,result')
   ]);
-  if (pr.error || gr.error || sr.error) return json({ error: '数据读取失败' }, 500);
+
+  if (pr.error || gr.error || sr.error) {
+    console.error('DB error:', pr.error || gr.error || sr.error);
+    return json({ error: '数据读取失败' }, 500);
+  }
 
   const players = pr.data || [];
   const games = gr.data || [];
   const scores = sr.data || [];
 
-  const fallback = ruleAnswer(question, players, games, scores);
-
   if (!games.length) {
     return json({ answer: '还没有任何对局记录，先记录几局再来问我。', source: 'rule' });
   }
 
-  const llm = await callLLM(question, buildContext(players, games, scores));
+  const fallback = ruleAnswer(question, players, games, scores);
+  const context = buildContext(players, games, scores);
+
+  const llm = await callLLM(question, context);
+  
   if (llm) {
     const allowed = buildAllowed(players, games, scores);
     if (numbersConsistent(llm, allowed)) {
       return json({ answer: llm, source: 'llm' });
     }
-    // 数字对不上 = 判定幻觉，回退规则引擎
+    console.warn('LLM number mismatch, falling back to rule engine');
     return json({ answer: fallback, source: 'rule', note: 'llm_number_mismatch' });
   }
 
