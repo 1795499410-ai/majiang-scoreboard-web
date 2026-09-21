@@ -15,6 +15,7 @@ import Players from './pages/Players';
 import Ai from './pages/Ai';
 import TableDetail from './pages/TableDetail';
 import Me from './pages/Me';
+import ResetPassword from './pages/ResetPassword';
 import './styles.css';
 import './pages.css';
 
@@ -42,6 +43,7 @@ function App() {
     <HashRouter>
       <Routes>
         <Route path="/login" element={<LoginRoute />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/" element={<Guard><Leaderboard /></Guard>} />
         <Route path="/players" element={<Guard><Players /></Guard>} />
         <Route path="/ai" element={<Guard><Ai /></Guard>} />
