@@ -1,8 +1,5 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-// 用 HashRouter 而非 BrowserRouter：静态托管（OSS）不支持未知路径回退到
-// index.html，BrowserRouter 下直接访问或刷新 /players 会拿到 404 XML。
-// hash 段不发往服务器，因此收藏、刷新、分享链接均可用。
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import { ToastProvider } from './components/ui';
@@ -15,6 +12,7 @@ import Players from './pages/Players';
 import Ai from './pages/Ai';
 import TableDetail from './pages/TableDetail';
 import Me from './pages/Me';
+import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import './styles.css';
 import './pages.css';
@@ -45,6 +43,7 @@ function App() {
         <ToastProvider>
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Guard><Leaderboard /></Guard>} />
             <Route path="/players" element={<Guard><Players /></Guard>} />
