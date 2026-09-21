@@ -173,7 +173,7 @@ export async function changePassword(newPassword) {
   if (error) throw new Error(translateAuthError(error.message, 'update'));
 }
 
-function translateAuthError(msg, ctx) {
+export function translateAuthError(msg, ctx) {
   const m = String(msg);
   if (/Invalid login credentials/i.test(m)) return '账号或密码不正确';
   if (/User already registered/i.test(m)) return '该账号已被注册，换一个试试';
