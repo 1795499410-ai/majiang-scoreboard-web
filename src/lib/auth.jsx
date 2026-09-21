@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import { getProfile, updateVenueName as persistVenueName } from './db';
 
@@ -60,6 +61,7 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState(null);
   const userId = session?.user?.id;
+  const navigate = useNavigate();
 
   useEffect(() => {
     let alive = true;
@@ -69,16 +71,20 @@ export function AuthProvider({ children }) {
       setSession(data.session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setProfileName(null);
       setSession(s);
       setLoading(false);
+      // 密码重置邮件点击后，Supabase 验证 token 并触发此事件
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/reset-password', { replace: true });
+      }
     });
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     let alive = true;
