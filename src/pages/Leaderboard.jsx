@@ -102,33 +102,6 @@ export default function Leaderboard() {
     }
   };
 
-  // 从筛选后的桌次聚合每位玩家的总积分
-  const computeSummary = () => {
-    if (!filteredTables.length) return null;
-    const totals = {};
-    let totalGames = 0;
-    filteredTables.forEach((t) => {
-      totalGames += t.rounds;
-      t.players.forEach((p) => {
-        if (!totals[p.player_id]) {
-          totals[p.player_id] = {
-            player_id: p.player_id,
-            nickname: p.nickname,
-            avatar_color: p.avatar_color,
-            points: 0,
-            games: 0
-          };
-        }
-        totals[p.player_id].points += p.points;
-        totals[p.player_id].games += 1;
-      });
-    });
-    const sorted = Object.values(totals).sort((a, b) => b.points - a.points);
-    return { players: sorted, totalGames, tableCount: filteredTables.length };
-  };
-
-  const tableSummary = computeSummary();
-
   // 调用 AI 生成评价
   const askAiSummary = async () => {
     if (aiBusy || !tableSummary) return;
@@ -168,6 +141,33 @@ export default function Leaderboard() {
       default: return true;
     }
   });
+
+  // 从筛选后的桌次聚合每位玩家的总积分
+  const computeSummary = () => {
+    if (!filteredTables.length) return null;
+    const totals = {};
+    let totalGames = 0;
+    filteredTables.forEach((t) => {
+      totalGames += t.rounds;
+      t.players.forEach((p) => {
+        if (!totals[p.player_id]) {
+          totals[p.player_id] = {
+            player_id: p.player_id,
+            nickname: p.nickname,
+            avatar_color: p.avatar_color,
+            points: 0,
+            games: 0
+          };
+        }
+        totals[p.player_id].points += p.points;
+        totals[p.player_id].games += 1;
+      });
+    });
+    const sorted = Object.values(totals).sort((a, b) => b.points - a.points);
+    return { players: sorted, totalGames, tableCount: filteredTables.length };
+  };
+
+  const tableSummary = computeSummary();
 
   return (
     <div className="page page-rich">
