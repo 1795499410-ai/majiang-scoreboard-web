@@ -23,9 +23,15 @@ export function validateEmail(email) {
   return null;
 }
 
-/** 从邮箱提取用户名部分用于显示 */
 export function toUsername(email) {
   return String(email || '').split('@')[0];
+}
+
+/** 检测 URL hash 中是否有 recovery token（Supabase 密码重置回调） */
+function isRecoveryFlow() {
+  const hash = window.location.hash;
+  if (!hash) return false;
+  return hash.includes('type=recovery') || hash.includes('type%3Drecovery');
 }
 
 const AuthCtx = createContext({
@@ -48,6 +54,14 @@ export function AuthProvider({ children }) {
   const [profileError, setProfileError] = useState(null);
   const userId = session?.user?.id;
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // 页面加载时如果 hash 中有 recovery token，立即跳转到重置密码页
+    // 这必须在 LoginRoute 的 session 重定向之前发生
+    if (isRecoveryFlow()) {
+      navigate('/reset-password', { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     let alive = true;
@@ -162,7 +176,6 @@ export async function changePassword(newPassword) {
   if (error) throw new Error(translateAuthError(error.message, 'update'));
 }
 
-/** 发送密码重置邮件 */
 export async function sendPasswordReset(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(
     String(email).trim().toLowerCase(),
