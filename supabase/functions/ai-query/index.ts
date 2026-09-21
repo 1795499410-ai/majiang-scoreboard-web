@@ -1,7 +1,7 @@
 // AI 查询 —— 三级降级：LLM → 规则引擎 → 建议（D-006）
 // 强制机制：输出格式约束 + 数值一致性校验 + 失败回退模板
 //
-// LLM 供应商：Agnes AI（OpenAI 兼容网关）。
+// LLM 供应商：DeepSeek（OpenAI 兼容 API）。
 // Key 一律从 Function Secrets 读取，不入代码库 —— 本仓库为公开仓库。
 // 配置：Supabase Dashboard → Edge Functions → Secrets 设置 LLM_API_KEY。
 // 未配置时 callLLM 直接返回 null，自动降级到规则引擎，功能不中断。
@@ -9,8 +9,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
 const LLM_DEFAULTS = {
-  baseUrl: 'https://apihub.agnes-ai.cn/v1',
-  model: 'agnes-2.0-flash'
+  baseUrl: 'https://api.deepseek.com/v1',
+  model: 'deepseek-chat'
 };
 
 const corsHeaders = {
