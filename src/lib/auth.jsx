@@ -3,16 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from './supabase';
 import { getProfile, updateVenueName as persistVenueName } from './db';
 
-/**
- * 账号体系：用户只输入「账号 + 密码」。
- * Supabase Auth 底层要求 email 格式，这里用固定内部域名合成，
- * 该地址永不收发邮件，仅作唯一标识。用户全程看不到它。
- */
-const INTERNAL_DOMAIN = 'mjscore.local';
 export const DEFAULT_VENUE_NAME = '牌桌风云';
 export const VENUE_NAME_MAX_LENGTH = 20;
-
-export const USERNAME_RULE = '3-20 位，字母、数字、下划线';
 
 export function validateVenueName(name) {
   const s = String(name || '').trim();
@@ -24,20 +16,14 @@ export function validateVenueName(name) {
   return null;
 }
 
-export function validateUsername(name) {
-  const s = String(name || '').trim();
-  if (!s) return '请输入账号';
-  if (s.length < 3) return '账号至少 3 位';
-  if (s.length > 20) return '账号最多 20 位';
-  if (!/^[A-Za-z0-9_]+$/.test(s)) return '账号只能用字母、数字、下划线';
-  if (/^\d+$/.test(s)) return '账号不能全是数字';
+export function validateEmail(email) {
+  const s = String(email || '').trim();
+  if (!s) return '请输入邮箱';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return '邮箱格式不正确';
   return null;
 }
 
-export function toEmail(username) {
-  return `${String(username).trim().toLowerCase()}@${INTERNAL_DOMAIN}`;
-}
-
+/** 从邮箱提取用户名部分用于显示 */
 export function toUsername(email) {
   return String(email || '').split('@')[0];
 }
@@ -75,7 +61,6 @@ export function AuthProvider({ children }) {
       setProfileName(null);
       setSession(s);
       setLoading(false);
-      // 密码重置邮件点击后，Supabase 验证 token 并触发此事件
       if (event === 'PASSWORD_RECOVERY') {
         navigate('/reset-password', { replace: true });
       }
@@ -103,7 +88,6 @@ export function AuthProvider({ children }) {
         setProfileName(profile?.venue_name || null);
       })
       .catch((error) => {
-        // 配置读取失败不应阻断记分主流，分享时使用默认名称。
         if (!alive) return;
         setProfileName(null);
         setProfileError(error);
@@ -144,26 +128,25 @@ export function AuthProvider({ children }) {
 
 export const useAuth = () => useContext(AuthCtx);
 
-export async function signIn(username, password) {
+export async function signIn(email, password) {
   const { error } = await supabase.auth.signInWithPassword({
-    email: toEmail(username),
+    email: String(email).trim().toLowerCase(),
     password
   });
   if (error) throw new Error(translateAuthError(error.message, 'signin'));
 }
 
-export async function signUp(username, password) {
+export async function signUp(email, password) {
   const { data, error } = await supabase.auth.signUp({
-    email: toEmail(username),
+    email: String(email).trim().toLowerCase(),
     password,
-    options: { data: { username: String(username).trim() } }
+    options: { data: { username: toUsername(email) } }
   });
   if (error) throw new Error(translateAuthError(error.message, 'signup'));
 
-  // 关闭邮箱确认后 signUp 直接返回 session；若为空则补一次登录
   if (!data.session) {
     const { error: le } = await supabase.auth.signInWithPassword({
-      email: toEmail(username),
+      email: String(email).trim().toLowerCase(),
       password
     });
     if (le) throw new Error(translateAuthError(le.message, 'signin'));
@@ -179,21 +162,33 @@ export async function changePassword(newPassword) {
   if (error) throw new Error(translateAuthError(error.message, 'update'));
 }
 
+/** 发送密码重置邮件 */
+export async function sendPasswordReset(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    String(email).trim().toLowerCase(),
+    {
+      redirectTo: `${window.location.origin}${window.location.pathname}#type=recovery`
+    }
+  );
+  if (error) throw new Error(translateAuthError(error.message, 'reset'));
+}
+
 export function translateAuthError(msg, ctx) {
   const m = String(msg);
-  if (/Invalid login credentials/i.test(m)) return '账号或密码不正确';
-  if (/User already registered/i.test(m)) return '该账号已被注册，换一个试试';
+  if (/Invalid login credentials/i.test(m)) return '邮箱或密码不正确';
+  if (/User already registered/i.test(m)) return '该邮箱已被注册';
   if (/Password should be at least/i.test(m)) return '密码至少 6 位';
   if (/Email address .* is invalid|Unable to validate email/i.test(m)) {
-    return '账号格式不被支持，请只用字母、数字、下划线';
+    return '邮箱格式不正确';
   }
   if (/rate limit|over_email_send/i.test(m)) {
     return '操作过于频繁，请稍后再试';
   }
   if (/Email not confirmed/i.test(m)) {
-    return '账号验证未关闭，请联系管理员在后台关闭邮箱确认';
+    return '邮箱未验证，请检查邮箱中的验证链接';
   }
   if (/same as the old|should be different/i.test(m)) return '新密码不能和旧密码相同';
   if (ctx === 'signup' && /signups not allowed|disabled/i.test(m)) return '当前不开放注册';
+  if (ctx === 'reset' && /not found|not registered/i.test(m)) return '该邮箱未注册';
   return m;
 }
