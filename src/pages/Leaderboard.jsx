@@ -7,7 +7,7 @@ import { Avatar, Score, Loading, ErrorBox, RankDelta } from '../components/ui';
 import { getSnapshot, saveSnapshot, annotate, hasChanged, markWritten } from '../lib/rankTrack';
 import { SceneHeader, WoodFrame, MahjongTile, EmptyPanda, GoldTitle } from '../components/decor';
 import PosterModal from '../components/PosterModal';
-import { renderDailyPoster } from '../lib/poster';
+import { renderDailyPoster, renderTablesPoster } from '../lib/poster';
 import { formatDate, weekStart, monthStart, signed } from '../lib/model';
 import { useAuth } from '../lib/auth';
 
@@ -90,6 +90,19 @@ export default function Leaderboard() {
       venueName
     }),
     [board, scope, gameCount, venueName]
+  );
+
+  const TABLE_SCOPE_LABEL = { all: "全部对战", today: "今日对战", week: "本周对战", month: "本月对战", custom: "自定义对战" };
+
+  const buildTablesPoster = useCallback(
+    () => renderTablesPoster({
+      scopeLabel: TABLE_SCOPE_LABEL[tableScope] || "全部对战",
+      tableSummary,
+      aiEval,
+      filteredTables,
+      venueName
+    }),
+    [tableScope, tableSummary, aiEval, filteredTables, venueName]
   );
 
   // 对战记录时间筛选逻辑
@@ -196,10 +209,10 @@ export default function Leaderboard() {
             对战记录
           </button>
         </div>
-        {board.length > 0 && (
+        {(view === "board" ? board.length > 0 : filteredTables.length > 0) && (
           <button className="share-btn" onClick={() => setPoster(true)} aria-label="生成战报">
             <Share2 size={15} strokeWidth={1.8} />
-            <span>战报</span>
+            <span>{view === "board" ? "排行战报" : "对战战报"}</span>
           </button>
         )}
       </div>
@@ -455,8 +468,10 @@ export default function Leaderboard() {
 
       {poster && (
         <PosterModal
-          render={buildPoster}
-          filename={`${SCOPE_LABEL[scope]}-${formatDate()}.png`}
+          render={view === "board" ? buildPoster : buildTablesPoster}
+          filename={view === "board"
+            ? `${SCOPE_LABEL[scope]}-${formatDate()}.png`
+            : `${TABLE_SCOPE_LABEL[tableScope] || "对战战报"}-${formatDate()}.png`}
           onClose={() => setPoster(false)}
         />
       )}

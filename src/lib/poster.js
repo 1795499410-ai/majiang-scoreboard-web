@@ -423,6 +423,255 @@ export async function renderTablePoster({ dateLabel, rounds, totals, venueName }
  * 保存图片。iOS Safari 不支持 a[download] 触发下载，
  * 返回 'download' | 'longpress' 告知调用方该显示什么提示。
  */
+
+/**
+ * 文本自动换行，返回实际绘制的行数。
+ * 超过 maxLines 时最后一行截断并加 "..."
+ */
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  const chars = text.split('');
+  let line = '';
+  let drawn = 0;
+  for (let i = 0; i < chars.length; i++) {
+    const test = line + chars[i];
+    if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+      drawn++;
+      if (drawn >= maxLines) {
+        // 最后一行，截断加省略号
+        let truncated = line;
+        while (ctx.measureText(truncated + '…').width > maxWidth && truncated.length > 0) {
+          truncated = truncated.slice(0, -1);
+        }
+        ctx.fillText(truncated + '…', x, y);
+        return drawn;
+      }
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      line = chars[i];
+    } else {
+      line = test;
+    }
+  }
+  if (line) {
+    drawn++;
+    ctx.fillText(line, x, y);
+  }
+  return drawn;
+}
+
+/** 对战记录综合战报：战绩总结(前4) + AI点评(如有) + 桌次列表(最多6桌) */
+export async function renderTablesPoster({ scopeLabel, tableSummary, aiEval, filteredTables, venueName }) {
+  // --- 预计算各区块高度 ---
+  const HEADER_H = 230;
+  const SUMMARY_PAD_TOP = 32;
+  const SUMMARY_TITLE_H = 36;
+  const SUMMARY_GRID_H = 220; // 2行 × 100 + 20间距
+  const SUMMARY_META_H = 28;
+  const SUMMARY_BOTTOM_PAD = 20;
+  const summaryH = SUMMARY_PAD_TOP + SUMMARY_TITLE_H + 12 + SUMMARY_GRID_H + SUMMARY_META_H + SUMMARY_BOTTOM_PAD;
+
+  // AI 点评区（如有）
+  let aiH = 0;
+  if (aiEval) {
+    aiH = 24 + 28 + 80 + 20; // padding + label + text(4行×20) + padding
+  }
+
+  // 对战记录区
+  const MAX_TABLES_SHOWN = 6;
+  const shownTables = filteredTables.slice(0, MAX_TABLES_SHOWN);
+  const overflowCount = filteredTables.length - shownTables.length;
+
+  // 计算每桌卡片高度
+  const tableCardHeights = shownTables.map((t) => {
+    const playerRows = Math.ceil(t.players.length / 2);
+    return 44 + playerRows * 36 + 16; // header + player rows + padding
+  });
+  const TABLE_TITLE_H = 36;
+  const tablesH = TABLE_TITLE_H + 8 + tableCardHeights.reduce((s, h) => s + h + 10, 0) + (overflowCount > 0 ? 32 : 0) + 16;
+
+  const TAIL = 168;
+  const totalH = HEADER_H + summaryH + aiH + tablesH + TAIL;
+  const { cv, ctx } = makeCanvas(totalH);
+
+  // --- Header ---
+  drawHeader(ctx, '对战战报', scopeLabel || '全部对战', venueName);
+  let y = HEADER_H;
+
+  // --- 战绩总结 ---
+  // 区块标题行
+  y += SUMMARY_PAD_TOP;
+  ctx.fillStyle = C.sub;
+  ctx.font = `600 26px ${FONT}`;
+  ctx.fillText('战绩总结', PAD, y + 22);
+
+  // 右侧元信息
+  ctx.fillStyle = C.weak;
+  ctx.font = `400 22px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(`${tableSummary.tableCount}桌 · ${tableSummary.totalGames}局`, W - PAD, y + 22);
+  ctx.textAlign = 'left';
+  y += SUMMARY_TITLE_H + 12;
+
+  // 前4名玩家 2×2 网格
+  const top4 = tableSummary.players.slice(0, 4);
+  const maxPoints = Math.max(...top4.map((p) => Math.abs(p.points)), 1);
+  const cardW = (W - PAD * 2 - 20) / 2; // 20 = gap between 2 cards
+  const cardH = 100;
+  const gap = 20;
+
+  const medalColors = [C.gold, C.silver, C.bronze, C.weak];
+
+  top4.forEach((p, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const cx = PAD + col * (cardW + gap);
+    const cy = y + row * (cardH + gap);
+
+    // 卡片背景
+    ctx.fillStyle = C.card;
+    roundRect(ctx, cx, cy, cardW, cardH, 12);
+    ctx.fill();
+
+    // 左侧名次色条
+    ctx.fillStyle = medalColors[idx] || C.weak;
+    roundRect(ctx, cx, cy, 6, cardH, 3);
+    ctx.fill();
+
+    // 头像
+    drawAvatar(ctx, cx + 36, cy + 34, 20, p.nickname, p.avatar_color);
+
+    // 昵称
+    ctx.fillStyle = C.text;
+    ctx.font = `500 24px ${FONT}`;
+    ctx.fillText(p.nickname, cx + 64, cy + 30);
+
+    // 局数
+    ctx.fillStyle = C.weak;
+    ctx.font = `400 18px ${FONT}`;
+    ctx.fillText(`${p.games}局`, cx + 64, cy + 52);
+
+    // 积分
+    ctx.fillStyle = scoreColor(p.points);
+    ctx.font = `700 28px ${NUM}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(signed(p.points), cx + cardW - 16, cy + 38);
+    ctx.textAlign = 'left';
+
+    // 迷你柱状条
+    const barY = cy + cardH - 22;
+    const barW = cardW - 32;
+    const barFill = Math.abs(p.points) / maxPoints * barW;
+    ctx.fillStyle = '#F0EDE6';
+    roundRect(ctx, cx + 16, barY, barW, 8, 4);
+    ctx.fill();
+    ctx.fillStyle = p.points >= 0 ? C.pos : C.neg;
+    if (barFill > 0) {
+      roundRect(ctx, cx + 16, barY, Math.max(barFill, 8), 8, 4);
+      ctx.fill();
+    }
+  });
+
+  y += 2 * cardH + gap + SUMMARY_META_H + SUMMARY_BOTTOM_PAD;
+
+  // --- AI 点评 ---
+  if (aiEval) {
+    // 背景卡片
+    ctx.fillStyle = '#F5F2EB';
+    roundRect(ctx, PAD, y, W - PAD * 2, 120, 14);
+    ctx.fill();
+
+    // 引号装饰
+    ctx.fillStyle = C.goldLight;
+    ctx.globalAlpha = 0.5;
+    ctx.font = `700 48px serif`;
+    ctx.fillText('"', PAD + 12, y + 42);
+    ctx.textAlign = 'right';
+    ctx.fillText('"', W - PAD - 12, y + 108);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+
+    // 标签
+    ctx.fillStyle = C.gold;
+    ctx.font = `600 20px ${FONT}`;
+    ctx.fillText('🤖 AI 点评', PAD + 20, y + 28);
+
+    // 文本（限4行）
+    ctx.fillStyle = C.sub;
+    ctx.font = `400 21px ${FONT}`;
+    drawWrappedText(ctx, aiEval, PAD + 20, y + 54, W - PAD * 2 - 40, 22, 4);
+
+    y += 120 + 20;
+  }
+
+  // --- 对战记录 ---
+  ctx.fillStyle = C.sub;
+  ctx.font = `600 26px ${FONT}`;
+  ctx.fillText(`对战记录（${filteredTables.length}）`, PAD, y + 22);
+  y += TABLE_TITLE_H + 8;
+
+  shownTables.forEach((t, i) => {
+    const playerRows = Math.ceil(t.players.length / 2);
+    const cardH = 44 + playerRows * 36 + 16;
+
+    // 卡片背景
+    ctx.fillStyle = C.card;
+    roundRect(ctx, PAD, y, W - PAD * 2, cardH, 12);
+    ctx.fill();
+
+    // 日期 + 局数
+    ctx.fillStyle = C.text;
+    ctx.font = `500 23px ${NUM}`;
+    ctx.fillText(t.played_date, PAD + 20, y + 30);
+    ctx.fillStyle = C.weak;
+    ctx.font = `400 20px ${FONT}`;
+    ctx.fillText(`${t.rounds}局`, PAD + 140, y + 30);
+
+    // 分隔线
+    ctx.fillStyle = C.line;
+    ctx.fillRect(PAD + 16, y + 40, W - PAD * 2 - 32, 1);
+
+    // 玩家得分 2列布局
+    t.players.forEach((p, j) => {
+      const col = j % 2;
+      const row = Math.floor(j / 2);
+      const px = PAD + 20 + col * ((W - PAD * 2 - 40) / 2);
+      const py = y + 44 + 24 + row * 36;
+
+      // 小头像
+      drawAvatar(ctx, px + 14, py, 12, p.nickname, p.avatar_color);
+
+      // 昵称
+      ctx.fillStyle = C.text;
+      ctx.font = `400 22px ${FONT}`;
+      ctx.fillText(p.nickname, px + 32, py + 6);
+
+      // 得分
+      ctx.fillStyle = scoreColor(p.points);
+      ctx.font = `600 22px ${NUM}`;
+      ctx.textAlign = 'right';
+      ctx.fillText(signed(p.points), px + (W - PAD * 2 - 40) / 2 - 8, py + 6);
+      ctx.textAlign = 'left';
+    });
+
+    y += cardH + 10;
+  });
+
+  if (overflowCount > 0) {
+    ctx.fillStyle = C.weak;
+    ctx.font = `400 22px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`共 ${filteredTables.length} 桌，已展示最近 ${MAX_TABLES_SHOWN} 桌`, W / 2, y + 18);
+    ctx.textAlign = 'left';
+    y += 32;
+  }
+
+  y += 16;
+
+  // --- Panda & Footer ---
+  drawPanda(ctx, W - 92, y + 62, 92, totalH - 118);
+  drawFooter(ctx, totalH - 62);
+  return toBlobUrl(cv);
+}
 export function savePoster(url, filename) {
   const ua = navigator.userAgent;
   const isIOS = /iP(hone|ad|od)/.test(ua) ||
