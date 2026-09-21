@@ -349,59 +349,48 @@ export default function Leaderboard() {
             </WoodFrame>
           ) : (
             <>
-              {/* 战绩总结 - 仿照首页积分排名设计 */}
+              {/* 战绩总结 - 紧凑炫技设计 */}
               {tableSummary && (
-                <>
-                  {/* 前三名 podium */}
-                  {tableSummary.players.length >= 1 && (
-                    <WoodFrame title="战绩风云榜" tone="stage">
-                      <div className="podium">
-                        {tableSummary.players.slice(0, 3).map((p, idx) => (
-                          <div className={`podium-item podium-rank-${idx}`} key={p.player_id}>
-                            <div className="crown-wrap">
-                              <span className={`crown crown-${idx}`}>{MEDAL_CHAR[idx]}</span>
-                              {idx === 0 && <span className="crown-ray" />}
-                            </div>
-                            <MahjongTile rank={idx} flipDelay={idx * 140}>
-                              <div className="mj-rank">{idx + 1}</div>
-                              <Avatar nickname={p.nickname} colorIndex={p.avatar_color} />
-                              <div className="mj-name">{p.nickname}</div>
-                              <Score value={p.points} className="mj-score" />
-                              <div className="mj-meta">{p.games}局</div>
-                            </MahjongTile>
+                <div className="summary-compact">
+                  <div className="summary-header-row">
+                    <span className="summary-title">战绩总结</span>
+                    <span className="summary-meta">{tableSummary.tableCount}桌 · {tableSummary.totalGames}局</span>
+                  </div>
+                  
+                  {/* 横向滚动卡片 */}
+                  <div className="summary-scroll">
+                    {tableSummary.players.map((p, idx) => {
+                      const maxPoints = Math.max(...tableSummary.players.map(x => Math.abs(x.points)));
+                      const barWidth = maxPoints > 0 ? (Math.abs(p.points) / maxPoints * 100) : 0;
+                      const isTop3 = idx < 3;
+                      const medalClass = ['medal-gold', 'medal-silver', 'medal-bronze'][idx] || '';
+                      
+                      return (
+                        <div className={`summary-card-item ${isTop3 ? 'top3' : ''} ${medalClass}`} key={p.player_id}>
+                          <div className="card-rank">{idx + 1}</div>
+                          <Avatar nickname={p.nickname} colorIndex={p.avatar_color} size="sm" />
+                          <div className="card-info">
+                            <div className="card-name">{p.nickname}</div>
+                            <div className="card-games">{p.games}局</div>
                           </div>
-                        ))}
-                      </div>
-                    </WoodFrame>
-                  )}
-
-                  {/* 其他玩家列表 */}
-                  {tableSummary.players.length > 3 && (
-                    <WoodFrame title="战绩群雄谱">
-                      <div className="rank-list">
-                        {tableSummary.players.slice(3).map((p, i) => (
-                          <div
-                            className="rank-row stagger"
-                            key={p.player_id}
-                            style={{ animationDelay: `${i * 55}ms` }}
-                          >
-                            <div className="rank-no num">{i + 4}</div>
-                            <Avatar nickname={p.nickname} colorIndex={p.avatar_color} size="sm" />
-                            <div className="row-main">
-                              <div className="row-title">{p.nickname}</div>
-                              <div className="row-sub">{p.games}局</div>
+                          <div className="card-score-wrap">
+                            <Score value={p.points} className="card-score" />
+                            <div className="score-bar">
+                              <div 
+                                className={`bar-fill ${p.points >= 0 ? 'positive' : 'negative'}`}
+                                style={{ width: `${barWidth}%` }}
+                              />
                             </div>
-                            <Score value={p.points} className="rank-score" />
                           </div>
-                        ))}
-                      </div>
-                    </WoodFrame>
-                  )}
+                        </div>
+                      );
+                    })}
+                  </div>
 
-                  {/* AI 点评按钮和结果 */}
+                  {/* AI 点评 */}
                   <div className="summary-ai-section">
                     <button
-                      className="btn btn-outline summary-ai-btn"
+                      className="btn btn-sm btn-outline summary-ai-btn"
                       onClick={askAiSummary}
                       disabled={aiBusy}
                     >
@@ -414,7 +403,7 @@ export default function Leaderboard() {
                       </div>
                     )}
                   </div>
-                </>
+                </div>
               )}
 
               <WoodFrame title={`对战记录（${filteredTables.length}）`} >
