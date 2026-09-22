@@ -315,7 +315,13 @@ export async function renderTablesPoster({ filteredTables: tables, tableSummary,
   const ROW_H = 56;
   const playerCount = tableSummary && tableSummary.players ? Math.min(tableSummary.players.length, maxPlayers) : 0;
   const summaryHeight = playerCount > 0 ? (30 + 48 + GAP + playerCount * ROW_H + GAP) : 0;
-  const aiHeight = aiEval ? (AI_H + GAP) : 0;
+  // Calculate AI section height based on text length
+  const aiLineHeight = 24;
+  const aiMaxWidth = CONTENT_W - 80;
+  const aiCharsPerLine = Math.floor(aiMaxWidth / 18); // Approximate chars per line
+  const aiLines = aiEval ? Math.ceil(aiEval.length / aiCharsPerLine) : 0;
+  const aiActualHeight = aiEval ? (60 + aiLines * aiLineHeight + 20) : 0;
+  const aiHeight = aiActualHeight > 0 ? (aiActualHeight + GAP) : 0;
   const tablesHeight = shown.length * (TABLE_CARD_H + GAP);
   
   const totalH = HEADER_H + GAP + summaryHeight + aiHeight + tablesHeight + FOOTER_H;
@@ -408,8 +414,9 @@ export async function renderTablesPoster({ filteredTables: tables, tableSummary,
 
   // AI 点评区域
   if (aiEval) {
+    const aiCardHeight = 60 + aiLines * aiLineHeight + 20;
     ctx.fillStyle = C.card;
-    roundRect(ctx, PAD, y, CONTENT_W, 80, 10);
+    roundRect(ctx, PAD, y, CONTENT_W, aiCardHeight, 10);
     ctx.fill();
 
     // AI 标签
@@ -417,16 +424,34 @@ export async function renderTablesPoster({ filteredTables: tables, tableSummary,
     ctx.font = `600 20px ${FONT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText('🤖 AI 点评', PAD + 20, y + 16);
+    ctx.fillText(' AI 点评', PAD + 20, y + 16);
 
-    // AI 文本（简化显示，限制长度）
+    // AI 文本（多行显示）
     ctx.fillStyle = C.sub;
     ctx.font = `400 18px ${FONT}`;
-    const maxLen = 40;
-    const displayText = aiEval.length > maxLen ? aiEval.substring(0, maxLen) + '…' : aiEval;
-    ctx.fillText(displayText, PAD + 20, y + 44);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    
+    // 手动换行
+    const maxWidth = CONTENT_W - 80;
+    let line = '';
+    let lineY = y + 44;
+    for (let char of aiEval) {
+      const testLine = line + char;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        ctx.fillText(line, PAD + 20, lineY);
+        line = char;
+        lineY += aiLineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, PAD + 20, lineY);
+    }
 
-    y += 88 + GAP;
+    y += aiCardHeight + GAP;
   }
 
   shown.forEach((t, idx) => {
