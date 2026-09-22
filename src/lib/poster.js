@@ -298,16 +298,28 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
 // ============================================================
 // 对战记录战报（多桌时间轴）
 // ============================================================
-export async function renderTablesPoster({ filteredTables: tables, venueName }) {
+export async function renderTablesPoster({ filteredTables: tables, tableSummary, aiEval, venueName }) {
   const HEADER_H = 200;
   const FOOTER_H = 80;
+  const SUMMARY_H = 80;
+  const AI_H = 100;
   const TABLE_CARD_H = 120;
   const GAP = 20;
 
   const maxTables = 10;
+  const maxPlayers = 8;
   const safeTables = tables || [];
   const shown = safeTables.slice(0, maxTables);
-  const totalH = HEADER_H + GAP + shown.length * (TABLE_CARD_H + GAP) + FOOTER_H;
+  
+  // Calculate height
+  let totalH = HEADER_H + GAP;
+  if (tableSummary && tableSummary.players && tableSummary.players.length > 0) {
+    totalH += SUMMARY_H + GAP;
+  }
+  if (aiEval) {
+    totalH += AI_H + GAP;
+  }
+  totalH += shown.length * (TABLE_CARD_H + GAP) + FOOTER_H;
 
   const cv = document.createElement('canvas');
   cv.width = W;
@@ -317,9 +329,106 @@ export async function renderTablesPoster({ filteredTables: tables, venueName }) 
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, W, totalH);
 
-  drawHeader(ctx, '对战记录', `${tables.length} 桌`, venueName, totalH);
+  drawHeader(ctx, '对战记录', `${safeTables.length} 桌`, venueName, totalH);
 
   let y = HEADER_H + GAP;
+
+  // 战绩总结区域
+  if (tableSummary && tableSummary.players && tableSummary.players.length > 0) {
+    // 标题
+    ctx.fillStyle = C.sub;
+    ctx.font = `400 22px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('战绩总结', PAD, y);
+    y += 16;
+
+    // 统计信息
+    ctx.fillStyle = C.card;
+    roundRect(ctx, PAD, y, CONTENT_W, 48, 10);
+    ctx.fill();
+
+    ctx.fillStyle = C.sub;
+    ctx.font = `400 20px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${tableSummary.tableCount || 0} 桌 · ${tableSummary.totalGames || 0} 局`, PAD + 20, y + 24);
+
+    y += 56 + GAP;
+
+    // 牌友排名（限制最多 8 人）
+    const players = tableSummary.players.slice(0, maxPlayers);
+    const ROW_H = 56;
+    players.forEach((p, i) => {
+      // 排名徽章
+      if (i < 3) {
+        drawRankBadge(ctx, PAD + 28, y + ROW_H / 2, 36, i);
+      } else {
+        ctx.fillStyle = C.weak;
+        ctx.font = `500 20px ${NUM}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), PAD + 28, y + ROW_H / 2);
+      }
+
+      // 头像
+      drawAvatar(ctx, PAD + 72, y + ROW_H / 2, 18, p.nickname, p.avatar_color);
+
+      // 昵称
+      ctx.fillStyle = C.text;
+      ctx.font = `500 22px ${FONT}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.nickname, PAD + 100, y + ROW_H / 2 + 1);
+
+      // 局数
+      ctx.fillStyle = C.weak;
+      ctx.font = `400 18px ${FONT}`;
+      ctx.fillText(`${p.games || 0}局`, PAD + 180, y + ROW_H / 2 + 1);
+
+      // 积分
+      drawScore(ctx, W - PAD - 20, y + ROW_H / 2, p.points, 'right', 26);
+
+      // 分隔线
+      if (i < players.length - 1) {
+        ctx.save();
+        ctx.strokeStyle = C.line;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(PAD + 20, y + ROW_H);
+        ctx.lineTo(W - PAD - 20, y + ROW_H);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      y += ROW_H;
+    });
+
+    y += GAP;
+  }
+
+  // AI 点评区域
+  if (aiEval) {
+    ctx.fillStyle = C.card;
+    roundRect(ctx, PAD, y, CONTENT_W, 80, 10);
+    ctx.fill();
+
+    // AI 标签
+    ctx.fillStyle = C.gold;
+    ctx.font = `600 20px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('🤖 AI 点评', PAD + 20, y + 16);
+
+    // AI 文本（简化显示，限制长度）
+    ctx.fillStyle = C.sub;
+    ctx.font = `400 18px ${FONT}`;
+    const maxLen = 40;
+    const displayText = aiEval.length > maxLen ? aiEval.substring(0, maxLen) + '…' : aiEval;
+    ctx.fillText(displayText, PAD + 20, y + 44);
+
+    y += 88 + GAP;
+  }
 
   shown.forEach((t, idx) => {
     // 卡片背景
