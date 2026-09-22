@@ -392,7 +392,7 @@ function toBlobUrl(cv) {
 
 export async function renderDailyPoster({ dateLabel, board, totalGames, venueName }) {
   const HEADER_H = 260;
-  const PODIUM_H = 240;
+  const PODIUM_H = 280;
   const REST_ITEM_H = 60;
   const SECTION_GAP = 36;
   const BOTTOM_PAD = 120;
@@ -417,7 +417,7 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
   // 领奖台
   const podiumY = HEADER_H + 20;
   const podiumOrder = [1, 0, 2].filter((i) => top3[i]);
-  const tileW = 110, tileH = 140;
+  const tileW = 110, tileH = 180;
   const podiumSpacing = 150;
   const podiumStartX = (W - (podiumOrder.length * podiumSpacing - 30)) / 2;
 
@@ -435,17 +435,17 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
     ctx.fillText(['冠', '亚', '季'][idx], tx + tileW / 2, ty + 50);
 
     // 头像
-    drawAvatar(ctx, tx + tileW / 2, ty + 82, 18, p.nickname, p.avatar_color);
+    drawAvatar(ctx, tx + tileW / 2, ty + 90, 18, p.nickname, p.avatar_color);
 
     // 昵称
     ctx.fillStyle = C.text;
     ctx.font = `500 22px ${FONT}`;
-    ctx.fillText(p.nickname, tx + tileW / 2, ty + 116);
+    ctx.fillText(p.nickname, tx + tileW / 2, ty + 124);
 
-    // 积分
+    // 积分（移到牌内底部）
     ctx.fillStyle = scoreColor(p.points);
     ctx.font = `700 26px ${NUM}`;
-    ctx.fillText(signed(p.points), tx + tileW / 2, ty + 148);
+    ctx.fillText(signed(p.points), tx + tileW / 2, ty + 160);
     ctx.textAlign = 'left';
   });
 
@@ -486,9 +486,10 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
     y += rowH + 4;
   });
 
-  // 熊猫 & 页脚
-  drawPanda(ctx, W - 92, y + 50, 80, totalH - 100);
-  drawFooter(ctx, totalH - 62);
+  // 熊猫 & 页脚（确保不重叠）
+  const footerY = Math.max(y + 80, totalH - 140);
+  drawPanda(ctx, W - 92, footerY, 80, totalH - 160);
+  drawFooter(ctx, totalH - 80);
 
   return toBlobUrl(cv);
 }
@@ -803,8 +804,9 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
   y += 16;
 
   // --- Panda & Footer ---
-  drawPanda(ctx, W - 92, y + 62, 92, totalH - 118);
-  drawFooter(ctx, totalH - 62);
+  const footerY = Math.max(y + 80, totalH - 140);
+  drawPanda(ctx, W - 92, footerY, 92, totalH - 160);
+  drawFooter(ctx, totalH - 80);
   return toBlobUrl(cv);
 }
 
@@ -882,8 +884,9 @@ export async function renderTablePoster({ dateLabel, rounds, totals, venueName }
     y += ROUND_H;
   });
 
-  drawPanda(ctx, W - 92, y + 50, 80, totalH - 100);
-  drawFooter(ctx, totalH - 62);
+  const footerY = Math.max(y + 80, totalH - 140);
+  drawPanda(ctx, W - 92, footerY, 80, totalH - 160);
+  drawFooter(ctx, totalH - 80);
   return toBlobUrl(cv);
 }
 
