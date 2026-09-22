@@ -432,23 +432,29 @@ export async function renderTablesPoster({ filteredTables: tables, tableSummary,
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     
-    // 手动换行
+    // 使用更可靠的多行文本渲染
     const maxWidth = CONTENT_W - 80;
-    let line = '';
-    let lineY = y + 44;
-    for (let char of aiEval) {
-      const testLine = line + char;
+    const lineHeight = 26; // 稍微增加行高
+    let displayY = y + 44;
+    
+    // 按字符分割并测量
+    let currentLine = '';
+    for (let i = 0; i < aiEval.length; i++) {
+      const char = aiEval[i];
+      const testLine = currentLine + char;
       const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && line.length > 0) {
-        ctx.fillText(line, PAD + 20, lineY);
-        line = char;
-        lineY += aiLineHeight;
+      
+      if (metrics.width > maxWidth && currentLine.length > 0) {
+        ctx.fillText(currentLine, PAD + 20, displayY);
+        currentLine = char;
+        displayY += lineHeight;
       } else {
-        line = testLine;
+        currentLine = testLine;
       }
     }
-    if (line) {
-      ctx.fillText(line, PAD + 20, lineY);
+    // 绘制最后一行
+    if (currentLine) {
+      ctx.fillText(currentLine, PAD + 20, displayY);
     }
 
     y += aiCardHeight + GAP;
