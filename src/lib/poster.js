@@ -214,7 +214,8 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
   const FOOTER_H = 80;
   const GAP = 20;
 
-  const playerCount = Math.min(board.length, 20);
+  const safeBoard = board || [];
+  const playerCount = Math.min(safeBoard.length, 20);
   const totalH = HEADER_H + STATS_H + GAP + playerCount * ROW_H + GAP + FOOTER_H;
 
   const cv = document.createElement('canvas');
@@ -245,7 +246,7 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
   y += STATS_H + GAP;
 
   // 排名列表
-  board.slice(0, 20).forEach((p, i) => {
+  safeBoard.slice(0, 20).forEach((p, i) => {
     const isTop3 = i < 3;
 
     if (isTop3) {
