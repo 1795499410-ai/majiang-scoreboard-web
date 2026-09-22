@@ -1588,3 +1588,450 @@
   margin: 0;
   font-style: italic;
 }
+
+/* ============================================================
+   Phase 3 — Leaderboard 增强：领奖台光柱 · 排行行动效 · 总结区升级
+   ============================================================ */
+
+/* 领奖台光柱效果 */
+.podium-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.podium-rank-0 .light-pillar {
+  background: linear-gradient(0deg, rgba(184,144,31,.1) 0%, transparent 70%);
+}
+
+.podium-rank-1 .light-pillar {
+  background: linear-gradient(0deg, rgba(138,141,147,.08) 0%, transparent 70%);
+}
+
+.podium-rank-2 .light-pillar {
+  background: linear-gradient(0deg, rgba(150,112,63,.08) 0%, transparent 70%);
+}
+
+/* 排行入场：从下方升起 + 渐显 */
+.rank-row.stagger {
+  animation: fade-rise .45s cubic-bezier(.4,0,.2,1) both;
+}
+
+/* 排名上升：绿色闪烁 */
+.row-up {
+  animation: fade-rise .45s cubic-bezier(.4,0,.2,1) both, rank-up-flash 1s ease-in-out;
+}
+
+@keyframes rank-up-flash {
+  0%   { background: rgba(74,124,99,.12); }
+  100% { background: transparent; }
+}
+
+/* 排名下降：微红闪烁 */
+.row-down {
+  animation: fade-rise .45s cubic-bezier(.4,0,.2,1) both, rank-down-flash 1s ease-in-out;
+}
+
+@keyframes rank-down-flash {
+  0%   { background: rgba(196,85,61,.06); }
+  100% { background: transparent; }
+}
+
+/* 总结区卡片增强 */
+.summary-compact {
+  position: relative;
+}
+
+.summary-compact::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--c-gold), transparent);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  opacity: .5;
+}
+
+/* AI 点评区增强 */
+.summary-ai-text {
+  position: relative;
+}
+
+.summary-ai-text::before {
+  content: '\201C';
+  position: absolute;
+  top: -8px;
+  left: 12px;
+  font-size: 48px;
+  font-family: var(--ff-serif);
+  color: var(--c-gold);
+  opacity: .2;
+  line-height: 1;
+}
+
+/* 战绩总结卡片项：hover 微抬 */
+.summary-card-item {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.summary-card-item:active {
+  transform: scale(0.96) translateY(-2px);
+  box-shadow: 0 4px 16px rgba(140,102,16,.2);
+}
+
+/* 木框标题衬线化 */
+.wood-plaque .plaque-text {
+  font-family: var(--ff-serif);
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+/* GoldTitle 增强：文字阴影 */
+.gold-title-inner {
+  text-shadow: 0 2px 8px rgba(184,144,31,.2);
+}
+
+/* 场景页头：云雾微动 */
+.scene-svg .motes circle {
+  animation: mote-drift 8s ease-in-out infinite alternate;
+}
+
+@keyframes mote-drift {
+  0%   { transform: translateY(0) translateX(0); }
+  100% { transform: translateY(-6px) translateX(4px); }
+}
+
+/* 星星闪烁增强 */
+.scene-svg .twinkle {
+  animation: twinkle 3s ease-in-out infinite alternate;
+}
+
+@keyframes twinkle {
+  0%   { opacity: .2; }
+  100% { opacity: .7; }
+}
+
+/* ============================================================
+   Phase 5 — 全局页面增强：卡片 · TabBar · 登录页
+   ============================================================ */
+
+/* 全局卡片：微光边框 */
+.card {
+  position: relative;
+  transition: box-shadow var(--t-fast), transform var(--t-fast);
+}
+
+.card:active {
+  transform: scale(.99);
+  box-shadow: var(--sh-deep);
+}
+
+/* TabBar 图标微动效 */
+.tabbar-item {
+  position: relative;
+  transition: color var(--t-fast), transform var(--t-fast);
+}
+
+.tabbar-item.active {
+  transform: translateY(-1px);
+}
+
+.tabbar-item:active {
+  transform: scale(.92);
+}
+
+/* 登录面板增强 */
+.login-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-panel::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -80%;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(184,144,31,.04), transparent);
+  transform: skewX(-15deg);
+  animation: login-shine 4s ease-in-out infinite;
+}
+
+@keyframes login-shine {
+  0%   { left: -80%; }
+  50%  { left: 120%; }
+  100% { left: 120%; }
+}
+
+/* 金色按钮脉冲增强 */
+.btn-gold.btn-pulse {
+  animation: btn-pulse-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes btn-pulse-glow {
+  0%, 100% { box-shadow: 0 3px 10px rgba(140,102,16,.34), inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 0 rgba(184,144,31,.3); }
+  50%      { box-shadow: 0 3px 10px rgba(140,102,16,.34), inset 0 1px 0 rgba(255,255,255,.55), 0 0 0 10px rgba(184,144,31,0); }
+}
+
+/* 输入框聚焦：墨迹扩散 */
+.input-glow {
+  position: relative;
+}
+
+.input-glow:focus {
+  border-color: var(--c-gold);
+  box-shadow: 0 0 0 3px rgba(184,144,31,.1), 0 0 16px rgba(184,144,31,.06);
+  transition: border-color 200ms ease, box-shadow 300ms ease;
+}
+
+/* 页面切换：整体淡入 */
+.page {
+  animation: page-enter 300ms cubic-bezier(.4,0,.2,1) both;
+}
+
+@keyframes page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 减少动效 */
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .card,
+  .tabbar-item,
+  .login-panel::after,
+  .btn-gold.btn-pulse {
+    animation: none !important;
+  }
+}
+
+/* ============================================================
+   Phase 6 — Record 牌桌俯视图 · Players 麻将牌翻转入场
+   ============================================================ */
+
+/* ---------- 牌桌俯视图 ---------- */
+.felt-table {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: var(--s5) auto;
+}
+
+.felt-surface {
+  position: absolute;
+  inset: 20px;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 30% 30%, #3A7D5C 0%, #2D6B4A 40%, #1F5C3A 70%, #164D2E 100%);
+  box-shadow:
+    inset 0 4px 20px rgba(0,0,0,.3),
+    inset 0 -2px 10px rgba(255,255,255,.05),
+    0 8px 32px rgba(31,29,26,.2);
+  border: 3px solid #5C3A1E;
+}
+
+/* 织物纹理 */
+.felt-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,.02) 2px, rgba(0,0,0,.02) 4px);
+  pointer-events: none;
+}
+
+/* 中心装饰：金色圆环 */
+.felt-center-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(184,144,31,.3);
+  background: radial-gradient(circle, rgba(184,144,31,.08) 0%, transparent 70%);
+}
+
+.felt-center-ring::after {
+  content: '局';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--ff-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: rgba(184,144,31,.4);
+}
+
+/* 座位 */
+.seat {
+  position: absolute;
+  width: 64px; height: 64px;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 200ms ease;
+  z-index: 2;
+}
+
+.seat:active {
+  transform: translate(-50%, -50%) scale(.9);
+}
+
+.seat-token {
+  width: 52px; height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #FFFDF6, #F0EBE0);
+  border: 2px solid rgba(140,102,16,.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-weak);
+  transition: all 200ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 已选座位：金色光晕 + 翻转动画 */
+.seat.selected .seat-token {
+  border-color: var(--c-gold);
+  box-shadow: 0 0 16px rgba(184,144,31,.3), 0 2px 8px rgba(0,0,0,.15);
+  animation: tile-flip-in 500ms cubic-bezier(.34,1.2,.64,1) both;
+}
+
+.seat.selected .seat-token::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(184,144,31,.1), transparent);
+}
+
+@keyframes tile-flip-in {
+  0%   { transform: rotateY(90deg) scale(.8); opacity: 0; }
+  60%  { transform: rotateY(-10deg) scale(1.05); }
+  100% { transform: rotateY(0) scale(1); opacity: 1; }
+}
+
+.seat-label {
+  font-size: 11px;
+  color: var(--c-text-sub);
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.seat.selected .seat-label {
+  color: var(--c-gold);
+  font-weight: 600;
+}
+
+/* 座位位置（环形排列） */
+.seat-pos-0 { top: 10%; left: 50%; }   /* 北 */
+.seat-pos-1 { top: 50%; left: 90%; }   /* 东 */
+.seat-pos-2 { top: 90%; left: 50%; }   /* 南 */
+.seat-pos-3 { top: 50%; left: 10%; }   /* 西 */
+.seat-pos-4 { top: 18%; left: 82%; }   /* 东北 */
+.seat-pos-5 { top: 82%; left: 82%; }   /* 东南 */
+.seat-pos-6 { top: 82%; left: 18%; }   /* 西南 */
+.seat-pos-7 { top: 18%; left: 18%; }   /* 西北 */
+
+/* 2人模式：左右 */
+.seat-2 .seat-pos-0 { top: 50%; left: 15%; }
+.seat-2 .seat-pos-1 { top: 50%; left: 85%; }
+
+/* 3人模式：三角 */
+.seat-3 .seat-pos-0 { top: 15%; left: 50%; }
+.seat-3 .seat-pos-1 { top: 80%; left: 20%; }
+.seat-3 .seat-pos-2 { top: 80%; left: 80%; }
+
+/* ---------- Players 麻将牌翻转入场 ---------- */
+.tile-row {
+  perspective: 800px;
+  margin-bottom: var(--s2);
+}
+
+.tile-row-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  background: linear-gradient(180deg, #FFFDF6, #F5F0E4);
+  border: 1.5px solid rgba(140,102,16,.15);
+  border-radius: var(--r-md);
+  box-shadow: 0 2px 8px rgba(31,29,26,.06);
+  transform-origin: center top;
+  animation: tile-row-flip 500ms cubic-bezier(.34,1.2,.64,1) both;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  cursor: pointer;
+}
+
+.tile-row-inner:active {
+  transform: scale(.97);
+  box-shadow: 0 1px 4px rgba(31,29,26,.08);
+}
+
+@keyframes tile-row-flip {
+  0%   { transform: rotateX(-80deg) translateY(-20px); opacity: 0; }
+  60%  { transform: rotateX(8deg) translateY(2px); }
+  100% { transform: rotateX(0) translateY(0); opacity: 1; }
+}
+
+/* 左侧麻将牌装饰条 */
+.tile-row-inner::before {
+  content: '';
+  flex: 0 0 4px;
+  height: 36px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--c-gold), var(--c-gold-dark, #96740F));
+  opacity: .6;
+}
+
+/* 牌友名册标题装饰 */
+.wood-frame .wood-plaque .plaque-text {
+  letter-spacing: 3px;
+}
+
+/* 搜索框聚焦光晕 */
+.search-box {
+  position: relative;
+  margin-bottom: var(--s4);
+}
+
+.search-box::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--r-md);
+  border: 2px solid transparent;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  pointer-events: none;
+}
+
+.search-box:focus-within::after {
+  border-color: rgba(184,144,31,.3);
+  box-shadow: 0 0 12px rgba(184,144,31,.1);
+}
+
+/* 统计数字弹跳 */
+.stat-num {
+  transition: transform 200ms ease;
+}
+
+.stat-num:active {
+  animation: num-bounce 400ms cubic-bezier(.34,1.2,.64,1);
+}
+
+/* 减少动效 */
+@media (prefers-reduced-motion: reduce) {
+  .seat-token,
+  .tile-row-inner {
+    animation: none !important;
+  }
+}

@@ -55,7 +55,7 @@ export default function Login() {
             </GoldTitle>
           </div>
 
-          <div className="login-panel">
+          <div className="login-panel btn-shine">
             <div className="login-switch">
               <button
                 type="button"
@@ -79,7 +79,7 @@ export default function Login() {
               <div className="field">
                 <label className="field-label">邮箱</label>
                 <input
-                  className="input"
+                  className="input input-glow"
                   type="email"
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -94,7 +94,7 @@ export default function Login() {
                 <label className="field-label">密码</label>
                 <div className="input-wrap">
                   <input
-                    className="input"
+                    className="input input-glow"
                     type={showPwd ? 'text' : 'password'}
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                     placeholder={mode === 'signup' ? '至少 6 位' : '请输入密码'}
@@ -116,7 +116,7 @@ export default function Login() {
                 <div className="field">
                   <label className="field-label">确认密码</label>
                   <input
-                    className="input"
+                    className="input input-glow"
                     type={showPwd ? 'text' : 'password'}
                     autoComplete="new-password"
                     placeholder="再输一次"
@@ -126,7 +126,7 @@ export default function Login() {
                 </div>
               )}
 
-              <button className="btn btn-gold" type="submit" disabled={busy}>
+              <button className="btn btn-gold btn-pulse" type="submit" disabled={busy}>
                 {busy ? '处理中…' : mode === 'signin' ? '入局' : '注册并入局'}
               </button>
             </form>

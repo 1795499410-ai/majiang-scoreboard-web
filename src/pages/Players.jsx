@@ -153,14 +153,14 @@ export default function Players() {
         ) : (
           <WoodFrame title="名册">
             {filtered.map((p, i) => (
-              <div className="row stagger" key={p.id} style={{ animationDelay: `${i * 45}ms` }}>
-                <button className="row-tap" onClick={() => openDetail(p)}>
+              <div className="tile-row" key={p.id}>
+                <div className="tile-row-inner" style={{ animationDelay: `${i * 60}ms` }} onClick={() => openDetail(p)}>
                   <Avatar nickname={p.nickname} colorIndex={p.avatar_color} />
                   <div className="row-main">
                     <div className="row-title">{p.nickname}</div>
                     {p.remark && <div className="row-sub">{p.remark}</div>}
                   </div>
-                </button>
+                </div>
                 <button className="icon-btn" onClick={() => openEdit(p)} aria-label="编辑">
                   <Pencil size={16} strokeWidth={1.5} />
                 </button>

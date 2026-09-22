@@ -371,9 +371,9 @@ export default function Leaderboard() {
             <>
               {/* 战绩总结 - 紧凑炫技设计 */}
               {tableSummary && (
-                <div className="summary-compact">
+                <div className="summary-compact fade-rise stagger-1">
                   <div className="summary-header-row">
-                    <span className="summary-title">战绩总结</span>
+                    <span className="summary-title font-serif">战绩总结</span>
                     <span className="summary-meta">{tableSummary.tableCount}桌 · {tableSummary.totalGames}局</span>
                   </div>
                   
@@ -410,14 +410,14 @@ export default function Leaderboard() {
                   {/* AI 点评 */}
                   <div className="summary-ai-section">
                     <button
-                      className="btn btn-sm btn-outline summary-ai-btn"
+                      className="btn btn-sm btn-outline summary-ai-btn btn-shine"
                       onClick={askAiSummary}
                       disabled={aiBusy}
                     >
                       {aiBusy ? 'AI 点评中…' : '🤖 AI 点评'}
                     </button>
                     {aiEval && (
-                      <div className="summary-ai-text">
+                      <div className="summary-ai-text fade-rise">
                         <span className="summary-ai-label">AI 点评</span>
                         <p>{aiEval}</p>
                       </div>

@@ -101,7 +101,7 @@ export default function TableDetail() {
             </div>
 
             {data.rounds.map((r) => (
-              <div className="card" key={r.game_id}>
+              <div className="card fade-rise" key={r.game_id} style={{ animationDelay: `${(r.round_num - 1) * 60}ms` }}>
                 <div className="round-head">
                   <span className="field-label" style={{ margin: 0 }}>
                     第{r.round_num}局 {r.played_time && `· ${r.played_time}`}

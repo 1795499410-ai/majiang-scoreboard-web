@@ -331,3 +331,345 @@ input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin
   box-shadow: var(--sh-bar);
   z-index: 40;
 }
+
+/* ============================================================
+   Phase 1 — 全站视觉升级：令牌 · 背景 · 卡片 · 按钮 · 动效
+   ============================================================ */
+
+
+/* ---------- 扩展令牌 ---------- */
+:root {
+  /* 衬线字体 */
+  --ff-serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+
+  /* 毛玻璃 */
+  --glass-bg: rgba(255,253,247,.72);
+  --glass-border: rgba(184,144,31,.18);
+  --glass-blur: 16px;
+
+  /* 光晕色 */
+  --glow-green: rgba(74,124,99,.35);
+  --glow-gold: rgba(184,144,31,.30);
+  --glow-red: rgba(196,85,61,.25);
+
+  /* 高级阴影 */
+  --sh-deep: 0 8px 32px rgba(31,29,26,.12);
+  --sh-glow: 0 0 20px var(--glow-gold), 0 4px 16px rgba(31,29,26,.08);
+  --sh-neon: 0 0 12px var(--glow-green), 0 0 40px rgba(74,124,99,.12);
+
+  /* 渐变边框 */
+  --gradient-border-gold: linear-gradient(135deg, #D4AC42, #B8901F, #96740F);
+  --gradient-border-jade: linear-gradient(135deg, #6BA383, #4A7C63, #3A6350);
+
+  /* 纹理 */
+  --texture-gold: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 2px,
+    rgba(184,144,31,.03) 2px,
+    rgba(184,144,31,.03) 4px
+  );
+}
+
+/* ---------- 全局背景升级：多层叠加 ---------- */
+body::before {
+  /* 保留原点阵，降低不透明度 */
+  opacity: .015;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  /* 径向光晕层 */
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 10%, rgba(184,144,31,.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(74,124,99,.035) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(196,85,61,.02) 0%, transparent 50%);
+  animation: bg-pulse 12s ease-in-out infinite alternate;
+}
+
+@keyframes bg-pulse {
+  0%   { opacity: .6; transform: scale(1); }
+  100% { opacity: 1;  transform: scale(1.04); }
+}
+
+/* 飘动光尘粒子 */
+.particles {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: rgba(184,144,31,.25);
+  animation: particle-float linear infinite;
+}
+.particle:nth-child(1)  { left: 8%;  animation-duration: 18s; animation-delay: 0s;   width: 2px; height: 2px; }
+.particle:nth-child(2)  { left: 22%; animation-duration: 22s; animation-delay: -3s;  width: 3px; height: 3px; background: rgba(74,124,99,.2); }
+.particle:nth-child(3)  { left: 38%; animation-duration: 16s; animation-delay: -7s;  width: 2px; height: 2px; }
+.particle:nth-child(4)  { left: 55%; animation-duration: 24s; animation-delay: -2s;  width: 4px; height: 4px; background: rgba(196,85,61,.15); }
+.particle:nth-child(5)  { left: 72%; animation-duration: 20s; animation-delay: -9s;  width: 2px; height: 2px; }
+.particle:nth-child(6)  { left: 88%; animation-duration: 19s; animation-delay: -5s;  width: 3px; height: 3px; background: rgba(74,124,99,.18); }
+.particle:nth-child(7)  { left: 15%; animation-duration: 26s; animation-delay: -11s; width: 2px; height: 2px; }
+.particle:nth-child(8)  { left: 48%; animation-duration: 21s; animation-delay: -14s; width: 3px; height: 3px; }
+.particle:nth-child(9)  { left: 65%; animation-duration: 17s; animation-delay: -1s;  width: 2px; height: 2px; background: rgba(184,144,31,.2); }
+.particle:nth-child(10) { left: 92%; animation-duration: 23s; animation-delay: -8s;  width: 2px; height: 2px; }
+
+@keyframes particle-float {
+  0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+}
+
+/* ---------- 毛玻璃卡片 ---------- */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  box-shadow: var(--sh-deep);
+  margin-bottom: var(--s3);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+}
+
+/* ---------- 光效卡片（hover/active 流光） ---------- */
+.glow-card {
+  background: var(--c-bg-card);
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  box-shadow: var(--sh-card);
+  margin-bottom: var(--s3);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow var(--t-fast), transform var(--t-fast);
+}
+
+.glow-card::after {
+  content: '';
+  position: absolute; top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(184,144,31,.06) 25%, transparent 50%);
+  animation: glow-rotate 6s linear infinite;
+  opacity: 0;
+  transition: opacity var(--t-fast);
+}
+
+.glow-card:active::after {
+  opacity: 1;
+}
+
+.glow-card:active {
+  box-shadow: var(--sh-glow);
+  transform: scale(.985);
+}
+
+@keyframes glow-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- 浮雕卡片 ---------- */
+.emboss-card {
+  background: linear-gradient(180deg, rgba(255,253,247,.95), rgba(244,239,226,.95));
+  border-radius: var(--r-lg);
+  padding: var(--s4);
+  margin-bottom: var(--s3);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.8),
+    inset 0 -1px 0 rgba(0,0,0,.04),
+    0 2px 8px rgba(31,29,26,.06);
+  border: 1px solid rgba(140,102,16,.1);
+}
+
+/* ---------- 按钮光泽扫过动画 ---------- */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+  transform: skewX(-20deg);
+  animation: shine-sweep 3s ease-in-out infinite;
+}
+
+@keyframes shine-sweep {
+  0%   { left: -100%; }
+  60%  { left: 150%; }
+  100% { left: 150%; }
+}
+
+/* ---------- 脉冲光晕按钮 ---------- */
+.btn-pulse {
+  position: relative;
+  animation: btn-pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes btn-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow-green); }
+  50%      { box-shadow: 0 0 0 8px rgba(74,124,99,0); }
+}
+
+/* ---------- 涟漪点击反馈 ---------- */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,.35);
+  transform: scale(0);
+  animation: ripple-anim 500ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes ripple-anim {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ---------- 输入框聚焦光晕 ---------- */
+.input-glow {
+  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.input-glow:focus {
+  border-color: var(--c-gold);
+  box-shadow: 0 0 0 3px rgba(184,144,31,.12), 0 0 12px rgba(184,144,31,.08);
+}
+
+/* ---------- 金色文字 ---------- */
+.text-gold {
+  background: linear-gradient(135deg, #D4AC42, #B8901F, #96740F);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---------- 衬线标题 ---------- */
+.font-serif {
+  font-family: var(--ff-serif);
+}
+
+/* ---------- 入场动画 ---------- */
+.fade-rise {
+  animation: fade-rise .5s cubic-bezier(.4,0,.2,1) both;
+}
+
+@keyframes fade-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.stagger-1 { animation-delay: 60ms;  }
+.stagger-2 { animation-delay: 120ms; }
+.stagger-3 { animation-delay: 180ms; }
+.stagger-4 { animation-delay: 240ms; }
+.stagger-5 { animation-delay: 300ms; }
+.stagger-6 { animation-delay: 360ms; }
+.stagger-7 { animation-delay: 420ms; }
+.stagger-8 { animation-delay: 480ms; }
+
+/* ---------- 分隔装饰线（云纹/回纹替代） ---------- */
+.ornament-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: var(--s4) 0;
+  color: var(--c-gold);
+  opacity: .5;
+  font-size: 14px;
+}
+
+.ornament-divider::before,
+.ornament-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-gold), transparent);
+  opacity: .3;
+}
+
+/* ---------- 升级弹层：毛玻璃 ---------- */
+.modal-glass {
+  background: rgba(255,253,247,.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(184,144,31,.15);
+  border-radius: var(--r-lg);
+  padding: var(--s5);
+  width: 100%; max-width: 340px;
+  box-shadow: var(--sh-deep), 0 0 40px rgba(184,144,31,.06);
+  animation: modal-in 200ms cubic-bezier(.34,1.2,.64,1);
+}
+
+/* ---------- 升级 Toast：金色边框 ---------- */
+.toast-gold {
+  position: fixed; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(31,29,26,.92);
+  color: #fff;
+  padding: var(--s3) var(--s5);
+  border-radius: var(--r-md);
+  font-size: var(--fs-body); font-weight: 500;
+  z-index: 999; max-width: 80vw; text-align: center;
+  border: 1px solid rgba(184,144,31,.3);
+  box-shadow: 0 0 20px rgba(184,144,31,.15);
+  animation: toast-in 200ms ease;
+}
+
+/* ---------- 数字跳动动画 ---------- */
+@keyframes num-bounce {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.15); }
+  60%  { transform: scale(.95); }
+  100% { transform: scale(1); }
+}
+
+.num-pop {
+  animation: num-bounce 400ms cubic-bezier(.34,1.2,.64,1);
+}
+
+/* ---------- 光柱（用于榜单前三名） ---------- */
+.light-pillar {
+  position: absolute;
+  bottom: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(0deg, rgba(184,144,31,.08) 0%, transparent 70%);
+  pointer-events: none;
+  animation: pillar-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes pillar-glow {
+  0%   { opacity: .4; }
+  100% { opacity: 1; }
+}
+
+/* ---------- 减少动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  body::after,
+  .particle,
+  .glow-card::after,
+  .btn-shine::after,
+  .btn-pulse,
+  .light-pillar {
+    animation: none !important;
+  }
+}

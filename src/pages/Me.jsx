@@ -109,7 +109,7 @@ export default function Me() {
               <div className="row-title" style={{ wordBreak: 'break-all' }}>{username}</div>
             </div>
           </div>
-          <button className="row row-tap" style={{ width: '100%' }} onClick={openVenue}>
+          <button className="row row-tap fade-rise stagger-1" style={{ width: '100%' }} onClick={openVenue}>
             <Store size={18} strokeWidth={1.5} color="var(--c-primary)" />
             <div className="row-main">
               <div className="row-title">
@@ -123,7 +123,7 @@ export default function Me() {
         </WoodFrame>
 
         <div className="card">
-          <button className="row row-tap" style={{ width: '100%' }} onClick={() => setShowPwd(true)}>
+          <button className="row row-tap fade-rise stagger-2" style={{ width: '100%' }} onClick={() => setShowPwd(true)}>
             <KeyRound size={18} strokeWidth={1.5} color="var(--c-primary)" />
             <div className="row-main">
               <div className="row-title">修改密码</div>

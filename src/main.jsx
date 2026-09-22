@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './lib/auth';
 import { ToastProvider } from './components/ui';
 import TabBar from './components/TabBar';
 import Transition from './components/Transition';
+import Particles from './components/Particles';
 import Login from './pages/Login';
 import Leaderboard from './pages/Leaderboard';
 import Record from './pages/Record';
@@ -39,6 +40,7 @@ function App() {
     <HashRouter>
       <AuthProvider>
         <ToastProvider>
+          <Particles />
           <Routes>
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/" element={<Guard><Leaderboard /></Guard>} />
