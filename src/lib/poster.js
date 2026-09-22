@@ -297,7 +297,7 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
 // ============================================================
 // 对战记录战报（多桌时间轴）
 // ============================================================
-export async function renderTablesPoster({ tables, venueName }) {
+export async function renderTablesPoster({ filteredTables: tables, venueName }) {
   const HEADER_H = 200;
   const FOOTER_H = 80;
   const TABLE_CARD_H = 120;
