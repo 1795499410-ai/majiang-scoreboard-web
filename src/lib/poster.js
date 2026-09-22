@@ -315,12 +315,12 @@ export async function renderTablesPoster({ filteredTables: tables, tableSummary,
   const ROW_H = 56;
   const playerCount = tableSummary && tableSummary.players ? Math.min(tableSummary.players.length, maxPlayers) : 0;
   const summaryHeight = playerCount > 0 ? (30 + 48 + GAP + playerCount * ROW_H + GAP) : 0;
-  // Calculate AI section height based on text length
-  const aiLineHeight = 24;
+  // Calculate AI section height - use conservative char width (20px per CJK char)
+  const aiLineHeight = 26;
   const aiMaxWidth = CONTENT_W - 80;
-  const aiCharsPerLine = Math.floor(aiMaxWidth / 18); // Approximate chars per line
-  const aiLines = aiEval ? Math.ceil(aiEval.length / aiCharsPerLine) : 0;
-  const aiActualHeight = aiEval ? (60 + aiLines * aiLineHeight + 20) : 0;
+  const aiCharsPerLine = Math.floor(aiMaxWidth / 20); // Conservative: 20px per CJK char
+  const aiLines = aiEval ? Math.max(1, Math.ceil(aiEval.length / aiCharsPerLine)) + 1 : 0; // +1 buffer line
+  const aiActualHeight = aiEval ? (60 + aiLines * aiLineHeight + 24) : 0;
   const aiHeight = aiActualHeight > 0 ? (aiActualHeight + GAP) : 0;
   const tablesHeight = shown.length * (TABLE_CARD_H + GAP);
   
