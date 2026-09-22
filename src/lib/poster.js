@@ -304,7 +304,8 @@ export async function renderTablesPoster({ filteredTables: tables, venueName }) 
   const GAP = 20;
 
   const maxTables = 10;
-  const shown = tables.slice(0, maxTables);
+  const safeTables = tables || [];
+  const shown = safeTables.slice(0, maxTables);
   const totalH = HEADER_H + GAP + shown.length * (TABLE_CARD_H + GAP) + FOOTER_H;
 
   const cv = document.createElement('canvas');
