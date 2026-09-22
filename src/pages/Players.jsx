@@ -160,10 +160,10 @@ export default function Players() {
                     <div className="row-title">{p.nickname}</div>
                     {p.remark && <div className="row-sub">{p.remark}</div>}
                   </div>
+                  <button className="tile-edit-btn" onClick={(e) => { e.stopPropagation(); openEdit(p); }} aria-label="编辑">
+                    <Pencil size={16} strokeWidth={1.5} />
+                  </button>
                 </div>
-                <button className="icon-btn" onClick={() => openEdit(p)} aria-label="编辑">
-                  <Pencil size={16} strokeWidth={1.5} />
-                </button>
               </div>
             ))}
           </WoodFrame>

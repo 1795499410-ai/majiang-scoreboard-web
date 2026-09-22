@@ -196,17 +196,32 @@ export default function Record() {
                 </button>
               </div>
             ) : (
-              <SeatTable
-                  players={players}
-                  selected={selected}
-                  onToggle={toggle}
-                />
+              <div className="pick-grid">
+                {players.map((p) => (
+                  <button
+                    key={p.id}
+                    className={`pick-item ${selected.includes(p.id) ? 'active' : ''}`}
+                    onClick={() => toggle(p.id)}
+                  >
+                    <Avatar nickname={p.nickname} colorIndex={p.avatar_color} />
+                    <span className="pick-name">{p.nickname}</span>
+                    {selected.includes(p.id) && (
+                      <span className="pick-badge"><Check size={12} strokeWidth={3} /></span>
+                    )}
+                  </button>
+                ))}
+              </div>
             )}
           </>
         )}
 
         {step === 2 && (
           <>
+            {selected.length >= 2 && (
+              <div className="felt-table-preview">
+                <SeatTable players={players.filter(p => selected.includes(p.id))} selected={selected} onToggle={() => {}} />
+              </div>
+            )}
             <div className="score-list">
               {selected.map((id) => {
                 const p = players.find((x) => x.id === id) || {};

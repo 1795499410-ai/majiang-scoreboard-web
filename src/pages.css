@@ -2035,3 +2035,95 @@
     animation: none !important;
   }
 }
+
+/* ============================================================
+   修复：编辑按钮 + 网格选人 + 牌桌预览
+   ============================================================ */
+
+/* 编辑按钮在 tile-row-inner 右侧 */
+.tile-edit-btn {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-text-weak);
+  border-radius: 50%;
+  transition: background 150ms ease, color 150ms ease;
+  margin-left: var(--s2);
+}
+
+.tile-edit-btn:active {
+  background: rgba(0,0,0,.06);
+  color: var(--c-text-sub);
+}
+
+/* 网格选人（Record Step 1） */
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--s3);
+  margin-top: var(--s4);
+}
+
+.pick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  padding: var(--s3);
+  background: var(--c-bg-card);
+  border: 2px solid var(--c-line);
+  border-radius: var(--r-md);
+  transition: all 150ms ease;
+  position: relative;
+}
+
+.pick-item:active {
+  transform: scale(.95);
+}
+
+.pick-item.active {
+  border-color: var(--c-gold);
+  background: linear-gradient(180deg, rgba(184,144,31,.08), rgba(184,144,31,.04));
+  box-shadow: 0 2px 8px rgba(184,144,31,.2);
+}
+
+.pick-name {
+  font-size: var(--fs-aux);
+  color: var(--c-text);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-gold);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 牌桌预览（Record Step 2） */
+.felt-table-preview {
+  margin: var(--s4) auto;
+  transform: scale(.85);
+  transform-origin: top center;
+}
+
+/* 减少动效 */
+@media (prefers-reduced-motion: reduce) {
+  .tile-edit-btn,
+  .pick-item {
+    transition: none !important;
+  }
+}

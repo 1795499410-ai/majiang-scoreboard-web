@@ -338,6 +338,24 @@ function drawPanda(ctx, cx, cy, s, maxY) {
   ctx.restore();
 }
 
+
+/** 计算文字行数 */
+function calcTextLines(ctx, text, maxW, lineH) {
+  let line = '';
+  let lines = 0;
+  for (const ch of text) {
+    const test = line + ch;
+    if (ctx.measureText(test).width > maxW && line.length > 0) {
+      lines++;
+      line = ch;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines++;
+  return Math.min(lines, 6); // 最多 6 行
+}
+
 function drawWrappedText(ctx, text, x, y, maxW, lineH, maxLines) {
   let line = '';
   let drawn = 0;
@@ -495,7 +513,16 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
   // 战绩总结区
   if (tableSummary) {
     totalH += SUMMARY_TITLE_H + SUMMARY_CARD_H + SUMMARY_GAP;
-    if (aiEval) totalH += AI_SCROLL_H + SUMMARY_GAP;
+    if (aiEval) {
+      // 动态计算 AI 高度
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.font = `400 23px ${FONT}`;
+      const textW = W - PAD * 2 - 32 - 72;
+      const lineCount = calcTextLines(tempCtx, aiEval, textW, 32);
+      const maxLines = Math.min(lineCount, 6);
+      totalH += 60 + maxLines * 32 + SUMMARY_GAP;
+    }
     totalH += SUMMARY_BOTTOM_PAD;
   }
 
@@ -619,7 +646,14 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
     if (aiEval) {
       const scrollX = PAD + 16;
       const scrollW = W - PAD * 2 - 32;
-      const scrollH = AI_SCROLL_H;
+      
+      // 动态计算高度：先测量文字行数
+      ctx.font = `400 23px ${FONT}`;
+      const textX = scrollX + 52;
+      const textW = scrollW - 72;
+      const lineCount = calcTextLines(ctx, aiEval, textW, 32);
+      const maxLines = Math.min(lineCount, 6);
+      const scrollH = 60 + maxLines * 32; // 顶部 60px + 每行 32px
 
       // 卷轴背景（宣纸 + 金色边框）
       fillPaperTexture(ctx, scrollX, y, scrollW, scrollH);
@@ -667,23 +701,10 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
       }
       ctx.restore();
 
-      // 大号引号装饰
-      ctx.fillStyle = C.goldLight;
-      ctx.globalAlpha = 0.3;
-      ctx.font = `700 56px ${SERIF}`;
-      ctx.textAlign = 'left';
-      ctx.fillText('\u201C', scrollX + 48, y + 46);
-      ctx.textAlign = 'right';
-      ctx.fillText('\u201D', scrollX + scrollW - 16, y + scrollH - 16);
-      ctx.textAlign = 'left';
-      ctx.globalAlpha = 1;
-
       // 点评文本（加大字号 + 行高 + 左右留白）
       ctx.fillStyle = C.sub;
       ctx.font = `400 23px ${FONT}`;
-      const textX = scrollX + 52;
-      const textW = scrollW - 72;
-      drawWrappedText(ctx, aiEval, textX, y + 36, textW, 32, 4);
+      drawWrappedText(ctx, aiEval, textX, y + 36, textW, 32, 6);
 
       y += scrollH + SUMMARY_GAP;
     }
@@ -741,7 +762,7 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
     ctx.fillText(t.played_date, cardX + 16, y + 30);
     ctx.fillStyle = C.weak;
     ctx.font = `400 18px ${FONT}`;
-    ctx.fillText(`${t.rounds}局`, cardX + 130, y + 30);
+    ctx.fillText(`${t.rounds}局`, cardX + 160, y + 30);
 
     // 分隔线
     ctx.fillStyle = C.line;
