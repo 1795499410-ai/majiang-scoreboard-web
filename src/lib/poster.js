@@ -395,7 +395,7 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
   const PODIUM_H = 280;
   const REST_ITEM_H = 60;
   const SECTION_GAP = 36;
-  const BOTTOM_PAD = 120;
+  const BOTTOM_PAD = 180;
 
   const top3 = board.slice(0, 3);
   const rest = board.slice(3);
@@ -461,12 +461,22 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
     ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,.5)' : 'transparent';
     ctx.fillRect(PAD, y, W - PAD * 2, rowH);
 
-    // 名次
-    ctx.fillStyle = C.weak;
-    ctx.font = `600 22px ${NUM}`;
-    ctx.textAlign = 'right';
-    ctx.fillText(`${i + 4}`, PAD + 30, y + 34);
+    // 名次（圆形徽章）
+    const rankNum = i + 4;
+    const rankCx = PAD + 22;
+    const rankCy = y + 28;
+    const rankR = 14;
+    ctx.fillStyle = 'rgba(154,148,138,.12)';
+    ctx.beginPath();
+    ctx.arc(rankCx, rankCy, rankR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = C.sub;
+    ctx.font = `600 16px ${NUM}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${rankNum}`, rankCx, rankCy + 1);
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
 
     // 头像
     drawAvatar(ctx, PAD + 52, y + 28, 18, p.nickname, p.avatar_color);
@@ -486,9 +496,8 @@ export async function renderDailyPoster({ dateLabel, board, totalGames, venueNam
     y += rowH + 4;
   });
 
-  // 熊猫 & 页脚（确保不重叠）
-  const footerY = Math.max(y + 80, totalH - 140);
-  drawPanda(ctx, W - 92, footerY, 80, totalH - 160);
+  // 熊猫 & 页脚
+  drawPanda(ctx, W - 92, totalH - 170, 80, totalH - 160);
   drawFooter(ctx, totalH - 80);
 
   return toBlobUrl(cv);
@@ -538,7 +547,9 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
   });
   if (overflowCount > 0) totalH += 40;
 
-  totalH += 140; // panda + footer
+  // 预留 panda + footer 空间（至少 180px）
+  const FOOTER_AREA = 180;
+  totalH += FOOTER_AREA;
 
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = totalH;
@@ -796,16 +807,18 @@ export async function renderTablesPoster({ dateLabel, board, tableSummary, aiEva
     ctx.fillStyle = C.weak;
     ctx.font = `400 20px ${FONT}`;
     ctx.textAlign = 'center';
-    ctx.fillText(`共 ${filteredTables.length} 桌，已展示最近 ${MAX_TABLES_SHOWN} 桌`, W / 2, y + 18);
+    ctx.fillText(`等 ${overflowCount} 局未展示 · 共 ${filteredTables.length} 桌`, W / 2, y + 18);
     ctx.textAlign = 'left';
-    y += 32;
+    y += 36;
   }
 
   y += 16;
 
   // --- Panda & Footer ---
-  const footerY = Math.max(y + 80, totalH - 140);
-  drawPanda(ctx, W - 92, footerY, 92, totalH - 160);
+  // 确保 panda 和 footer 在内容下方，不重叠
+  const minFooterY = y + 20;
+  const pandaY = Math.max(minFooterY, totalH - 170);
+  drawPanda(ctx, W - 92, pandaY, 92, totalH - 160);
   drawFooter(ctx, totalH - 80);
   return toBlobUrl(cv);
 }
@@ -814,7 +827,7 @@ export async function renderTablePoster({ dateLabel, rounds, totals, venueName }
   const HEADER_H = 260;
   const TOTALS_H = 60;
   const ROUND_H = 100;
-  const BOTTOM_PAD = 120;
+  const BOTTOM_PAD = 180;
 
   const totalH = HEADER_H + 30 + totals.length * TOTALS_H + 20 + rounds.length * ROUND_H + BOTTOM_PAD;
 
@@ -884,8 +897,7 @@ export async function renderTablePoster({ dateLabel, rounds, totals, venueName }
     y += ROUND_H;
   });
 
-  const footerY = Math.max(y + 80, totalH - 140);
-  drawPanda(ctx, W - 92, footerY, 80, totalH - 160);
+  drawPanda(ctx, W - 92, totalH - 170, 80, totalH - 160);
   drawFooter(ctx, totalH - 80);
   return toBlobUrl(cv);
 }
