@@ -311,15 +311,14 @@ export async function renderTablesPoster({ filteredTables: tables, tableSummary,
   const safeTables = tables || [];
   const shown = safeTables.slice(0, maxTables);
   
-  // Calculate height
-  let totalH = HEADER_H + GAP;
-  if (tableSummary && tableSummary.players && tableSummary.players.length > 0) {
-    totalH += SUMMARY_H + GAP;
-  }
-  if (aiEval) {
-    totalH += AI_H + GAP;
-  }
-  totalH += shown.length * (TABLE_CARD_H + GAP) + FOOTER_H;
+  // Calculate height dynamically based on content
+  const ROW_H = 56;
+  const playerCount = tableSummary && tableSummary.players ? Math.min(tableSummary.players.length, maxPlayers) : 0;
+  const summaryHeight = playerCount > 0 ? (30 + 48 + GAP + playerCount * ROW_H + GAP) : 0;
+  const aiHeight = aiEval ? (AI_H + GAP) : 0;
+  const tablesHeight = shown.length * (TABLE_CARD_H + GAP);
+  
+  const totalH = HEADER_H + GAP + summaryHeight + aiHeight + tablesHeight + FOOTER_H;
 
   const cv = document.createElement('canvas');
   cv.width = W;
